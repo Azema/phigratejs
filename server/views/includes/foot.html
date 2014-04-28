@@ -1,0 +1,14 @@
+<div id="scipts">
+    <script type="text/javascript">
+        window.user = {{user|safe}};
+        window.roles = {{roles|safe}};
+    </script>
+{% for file in assets.js %}
+	<script type="text/javascript" src="{{file}}"></script>
+{% endfor %}
+</div>
+
+{% if (process.env.NODE_ENV == 'development') %}
+	<!-- Livereload script rendered -->
+	<script type="text/javascript" src="{{'http://' + req.host + ':35729/livereload.js'}}"></script>
+{% endif %}

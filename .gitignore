@@ -1,0 +1,10 @@
+.DS_Store
+.bower-*/
+node_modules/
+test/coverage/
+modules/public/
+modules/views/
+/public/build/
+/public/vendor/
+.vagrant
+box/
