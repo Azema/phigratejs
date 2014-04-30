@@ -8,3 +8,4 @@ modules/views/
 /public/vendor/
 .vagrant
 box/
+coverage
