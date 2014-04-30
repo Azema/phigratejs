@@ -121,19 +121,13 @@ module.exports = function(app, passport, db) {
     var routes_path = appPath + '/server/routes';
     var walk = function(path, done) {
       var files = fs.readdirSync(path),
-          nbFiles = files.length;
+          nbFiles = files.length,
+          re = /\.js$/;
       files.forEach(function (file, index) {
         var newPath = path + '/' + file;
         var stat = fs.statSync(newPath);
-        if (stat.isFile()) {
-          if (/\.js$/.test(file)) {
-            require(newPath)(app, passport);
-          }
-        // We skip the app/routes/middlewares directory as it is meant to be
-        // used and shared by routes as further middlewares and is not a
-        // route by itself
-        } else if (stat.isDirectory() && file !== 'middlewares') {
-          walk(newPath);
+        if (stat.isFile() && re.test(file)) {
+          require(newPath)(app, passport);
         }
         if (index === nbFiles-1) {
           done();
