@@ -5,7 +5,8 @@
  */
 var mongoose = require('mongoose'),
     Schema = mongoose.Schema,
-    crypto = require('crypto');
+    crypto = require('crypto'),
+    validator = require('validator');
 
 /**
  * User Schema
@@ -52,9 +53,6 @@ UserSchema.virtual('password').set(function(password) {
 /**
  * Validations
  */
-var validatePresenceOf = function(value) {
-  return value && value.length;
-};
 
 // The 4 validations below only apply if you are signing up traditionally.
 UserSchema.path('name').validate(function(name) {
@@ -64,29 +62,35 @@ UserSchema.path('name').validate(function(name) {
 UserSchema.path('email').validate(function(email) {
   return (typeof email === 'string' && email.length > 0);
 }, 'Email cannot be blank');
+UserSchema.path('email').validate(function(email) {
+  return (typeof email === 'string' && email.length > 0 && validator.isEmail(email));
+}, 'You must enter a valid email address');
 
 UserSchema.path('username').validate(function(username) {
   return (typeof username === 'string' && username.length > 0);
 }, 'Username cannot be blank');
+UserSchema.path('username').validate(function(username) {
+  return (typeof username === 'string' && username.length > 0 && username.length <= 20);
+}, 'Username cannot be more than 20 characters');
 
 UserSchema.path('hashed_password').validate(function(hashed_password) {
   return (typeof hashed_password === 'string' && hashed_password.length > 0);
 }, 'Password cannot be blank');
 
+UserSchema.path('hashed_password').validate(function(hashed_password) {
+  if (this._password || this._confirmPassword) {
+    if (typeof this._password !== 'string' || this._password.length < 8 || this._password.length > 20) {
+      this.invalidate('password', 'Password must be between 8-20 characters long');
+    }
+  }
+  if (this.isNew && !this._password) {
+    this.invalidate('password', 'required');
+  }
+}, null);
 
-/**
- * Pre-save hook
- */
-UserSchema.pre('save', function(next) {
-  if (!this.isNew) return next();
-
-  if (!validatePresenceOf(this.password))
-    next(new Error('Invalid password'));
-  else
-    next();
-});
-
-if (!UserSchema.options.toJSON) UserSchema.options.toJSON = {};
+if (!UserSchema.options.hasOwnProperty('toJSON')) {
+  UserSchema.options.toJSON = {};
+}
 UserSchema.options.toJSON.transform = function (doc, ret, options) {
   // remove the _id of every document before returning the result
   delete ret.salt;
@@ -119,6 +123,24 @@ UserSchema.methods = {
     return this.roles.indexOf('admin') !== -1;
   },
   /**
+   * addProject - add project in the user
+   *
+   * @param {Project} project
+   * @return {User}
+   * @api public
+   */
+  addProject: function(project, done) {
+    project.user = this;
+    var self = this;
+    project.save(function(err, newProject) {
+      if (err) {
+        return done(err);
+      }
+      self.projects.push(newProject);
+      self.save(done);
+    });
+  },
+  /**
    * hasProject - check if the user has this project
    *
    * @param {mongoose.Schema.ObjectId} projectId
@@ -126,6 +148,9 @@ UserSchema.methods = {
    * @api public
    */
   hasProject: function(projectId) {
+    if (projectId instanceof mongoose.Types.ObjectId) {
+      projectId = projectId.toString();
+    }
     for (var i = 0; i < this.projects.length; i++) {
       if (projectId == this.projects[i]) {
         return true;

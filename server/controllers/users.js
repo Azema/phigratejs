@@ -7,23 +7,6 @@ var mongoose = require('mongoose'),
     User = mongoose.model('User');
 
 /**
- * Auth callback
- */
-exports.authCallback = function(req, res) {
-  res.redirect('/');
-};
-
-/**
- * Show login form
- */
-exports.signin = function(req, res) {
-  if(req.isAuthenticated()) {
-    return res.redirect('/');
-  }
-  res.redirect('#!/login');
-};
-
-/**
  * Logout
  */
 exports.signout = function(req, res) {
@@ -32,49 +15,42 @@ exports.signout = function(req, res) {
 };
 
 /**
- * Session
- */
-exports.session = function(req, res) {
-  res.redirect('/');
-};
-
-/**
  * Create user
  */
-exports.create = function(req, res, next) {
-  var user = new User(req.body);
+exports.create = function(req, res) {
 
-  user.provider = 'local';
-
-  // because we set our user.provider to local our models/user.js validation will always be true
-  req.assert('email', 'You must enter a valid email address').isEmail();
-  req.assert('password', 'Password must be between 8-20 characters long').len(8, 20);
-  req.assert('username', 'Username cannot be more than 20 characters').len(1,20);
+  // Check password fields are equals
   req.assert('confirmPassword', 'Passwords do not match').equals(req.body.password);
 
-  var errors = req.validationErrors();
-  if (errors) {
-    return res.status(412).send(errors);
+  if (req.validationErrors()) {
+    return res.json(412, {errors: {confirmPassword: 'Passwords do not match'}});
   }
+  var user = new User(req.body);
 
   // Hard coded for now. Will address this with the user permissions system in v0.3.5
   user.roles = ['authenticated'];
   user.save(function(err) {
     if (err) {
-      var msg;
-      switch (err.code) {
-        case 11000:
-        case 11001:
-          msg = 'Username already taken';
-          break;
-        default:
-          msg = 'Please fill all the required fields';
+      var msg = {errors: {}};
+      if (err.name && err.name === 'ValidationError') {
+        Object.keys(err.errors).forEach(function(path) {
+          msg.errors[path] = err.errors[path].message;
+        });
+      } else {
+        switch (err.code) {
+          case 11000:
+          case 11001:
+            msg.errors.username = 'Username already taken';
+            break;
+          default:
+            msg.errors.user = 'Please fill all the required fields';
+        }
       }
 
-      return res.status(412).send(msg);
+      return res.json(412, msg);
     }
     req.logIn(user, function(err) {
-      if (err) return next(err);
+      if (err) return res.json(500, err.errors);
       return res.json(200, user);
     });
   });
@@ -90,7 +66,7 @@ exports.me = function(req, res) {
  * Find user by id
  */
 exports.user = function(req, res, next, id) {
-  User.findOne({_id: id})
+  User.findOne({_id: id}, '-salt -hashed_password')
     .exec(function(err, user) {
       if (err) return next(err);
       if (!user) return next(new Error('Failed to load User ' + id));
