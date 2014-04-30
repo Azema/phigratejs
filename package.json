@@ -4,13 +4,23 @@
   "version": "0.0.1",
   "private": false,
   "author": "Manuel Hervo <manuel.hervo@gmail.com>",
-  "contributors": [
+  "contributors": [],
+  "license": "MIT",
+  "keywords": [
+    "phigrate",
+    "migration",
+    "mysql",
+    "IHM"
   ],
-  "license" : "MIT",
+  "homepage": "https://github.com/Azema/phigratejs",
   "repository": {
     "type": "git",
     "url": "https://github.com/Azema/phigratejs.git"
   },
+  "bugs": {
+    "url": "https://github.com/Azema/phigratejs/issues"
+  },
+  "readmeFilename": "README.md",
   "engines": {
     "node": "0.10.x",
     "npm": "1.3.x"
@@ -25,17 +35,21 @@
     "bower": "^1.2.8",
     "connect-flash": "^0.1.1",
     "connect-mongo": "^0.4.0",
-  	"consolidate": "^0.10.0",
+    "consolidate": "^0.10.0",
     "dependable": "0.2.5",
     "express": "^3.5.1",
     "express-validator": "^1.0.1",
     "forever": "^0.10.11",
     "grunt-cli": "^0.1.13",
+    "ini-reader": "git://github.com/Azema/ini-reader.js",
     "lodash": "^2.4.1",
     "mongoose": "^3.8.8",
+    "mpromise": "^0.5.1",
+    "mysql": "^2.2.0",
     "passport": "^0.1.18",
     "passport-local": "^0.1.6",
-	  "swig": "^1.3.2",
+    "swig": "^1.3.2",
+    "validator": "^3.11.0",
     "view-helpers": "^0.1.4"
   },
   "devDependencies": {
@@ -49,10 +63,13 @@
     "grunt-karma": "^0.6.2",
     "grunt-mocha-test": "latest",
     "grunt-nodemon": "0.2.0",
+    "istanbul": "^0.2.4",
     "karma": "^0.10.4",
     "karma-coverage": "^0.1.0",
     "load-grunt-tasks": "^0.4.0",
+    "optimist": "^0.6.1",
     "should": "2.1.1",
+    "sinon": "^1.9.1",
     "supertest": "0.8.2",
     "time-grunt": "^0.3.1"
   }
