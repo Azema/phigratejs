@@ -82,8 +82,8 @@ module.exports = function(grunt) {
     },
     mochaTest: {
       options: {
-        reporter: 'spec',
-        require: 'server.js'
+        reporter: 'spec'
+        //require: 'server.js'
       },
       src: ['test/mocha/**/*.js']
     },
@@ -117,4 +117,5 @@ module.exports = function(grunt) {
 
   //Test task.
   grunt.registerTask('test', ['env:test', 'mochaTest', 'karma:unit']);
+  grunt.registerTask('mocha', ['env:test', 'mochaTest']);
 };
