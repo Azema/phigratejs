@@ -5,18 +5,40 @@
  */
 var mongoose = require('mongoose'),
     Project = mongoose.model('Project'),
-    _ = require('lodash');
+    User = mongoose.model('User'),
+    _ = require('lodash'),
+    migrations = require('../lib/migrations');
 
+/**
+ * Check error type and return the code and message for the response
+ *
+ * @param {Object} err
+ * @return {Object} {code, message}
+ * @api private
+ */
+var checkErrors = function(err) {
+  var ret = {code: 500, message: {errors: err.errors}};
+  if (err.hasOwnProperty('name') && err.name === 'ValidationError') {
+    var msg = {errors: {}};
+    Object.keys(err.errors).forEach(function(path) {
+      msg.errors[path] = err.errors[path].message;
+    });
+    ret.code = 412;
+    ret.message = msg;
+  }
+  return ret;
+};
 
 /**
  * Find project by id
  */
-exports.project = function(req, res, next, id) {
-  Project.load(id, function(err, project) {
+var findProject = function(user, id, next) {
+  Project.findOne({_id: id, user: user}, function(err, project) {
     if (err) return next(err);
-    if (!project) return next(new Error('Failed to load project ' + id));
-    req.project = project;
-    next();
+    if (!project) {
+      return next(new Error('Failed to load project ' + id));
+    }
+    next(null, project);
   });
 };
 
@@ -25,14 +47,10 @@ exports.project = function(req, res, next, id) {
  */
 exports.create = function(req, res) {
   var project = new Project(req.body);
-  project.user = req.user;
-
-  project.save(function(err) {
+  req.user.addProject(project, function(err, user) {
     if (err) {
-      return res.send('users/signup', {
-        errors: err.errors,
-        project: project
-      });
+      var ret = checkErrors(err);
+      return res.json(ret.code, ret.message);
     } else {
       res.jsonp(project);
     }
@@ -43,19 +61,22 @@ exports.create = function(req, res) {
  * Update an project
  */
 exports.update = function(req, res) {
-  var project = req.project;
-
-  project = _.extend(project, req.body);
-
-  project.save(function(err) {
+  findProject(req.user, req.param('projectId'), function(err, project) {
     if (err) {
-      return res.send('users/signup', {
-        errors: err.errors,
-        project: project
-      });
-    } else {
-      res.jsonp(project);
+      console.log(err);
+      return res.json(500, {message: err});
     }
+
+    project = _.extend(project, req.body);
+
+    project.save(function(err, newProject) {
+      if (err) {
+        var ret = checkErrors(err);
+        return res.json(ret.code, ret.message);
+      } else {
+        res.jsonp(newProject);
+      }
+    });
   });
 };
 
@@ -63,13 +84,41 @@ exports.update = function(req, res) {
  * Delete an project
  */
 exports.destroy = function(req, res) {
-  var project = req.project;
-
-  project.remove(function(err) {
+  findProject(req.user, req.param('projectId'), function(err, project) {
     if (err) {
-      return res.send('users/signup', {
-        errors: err.errors,
-        project: project
+      console.log(err);
+      return res.json(500, {message: err});
+    }
+
+    project.remove(function(err) {
+      if (err) {
+        var ret = checkErrors(err);
+        return res.json(ret.code, ret.message);
+      } else {
+        res.status(204).send();
+      }
+    });
+  });
+};
+
+/**
+ * Show an project
+ */
+exports.show = function(req, res) {
+  findProject(req.user, req.param('projectId'), function(err, project) {
+    if (err) {
+      console.log(err);
+      return res.json(500, {message: err});
+    }
+    if (req.param('migrations')) {
+      migrations.getProjectMigrationFiles(project.config_path, project.section, function(err, files) {
+        if (err) {
+          console.log(err);
+          return res.json(500, {message: err});
+        }
+        project = project.toJSON();
+        project.migrations = files;
+        res.jsonp(project);
       });
     } else {
       res.jsonp(project);
@@ -78,24 +127,16 @@ exports.destroy = function(req, res) {
 };
 
 /**
- * Show an project
- */
-exports.show = function(req, res) {
-  res.jsonp(req.project);
-};
-
-/**
  * List of Projects
  */
 exports.all = function(req, res) {
-  Project.find()
+  Project.find({user: req.user})
     .sort('-created')
-    .populate('user', 'name username')
+    .populate('user', 'username name')
     .exec(function(err, projects) {
       if (err) {
-        res.render('error', {
-          status: 500
-        });
+        console.log(err);
+        res.json(500, {message: err});
       } else {
         res.jsonp(projects);
       }

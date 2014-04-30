@@ -24,6 +24,10 @@ var ProjectSchema = new Schema({
     type: String,
     default: '',
     trim: true
+  },
+  user: {
+    type: Schema.ObjectId,
+    ref: 'User'
   }
 });
 
@@ -50,8 +54,19 @@ ProjectSchema.statics.load = function(id, cb) {
     .exec(cb);
 };
 
+/**
+ * Hooks
+ */
+ProjectSchema.pre('remove', function (next) {
+  if (this.user) {
+    mongoose.model('User').findByIdAndUpdate(this.user, {$pull: { projects: this._id }}, next);
+  } else {
+    next();
+  }
+});
+
 // Add plugin timestamps
 var timestamps = require('./plugins/timestamps');
 ProjectSchema.plugin(timestamps);
 
-module.exports = mongoose.model('Project', ProjectSchema, 'projects');
+module.exports = mongoose.model('Project', ProjectSchema);
