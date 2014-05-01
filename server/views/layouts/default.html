@@ -1,13 +1,15 @@
 <!doctype html>
-<html lang="fr" xmlns="http://www.w3.org/1999/xhtml" xmlns:fb="https://www.facebook.com/2008/fbml" itemscope="itemscope" itemtype="http://schema.org/Product">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" itemscope="itemscope" itemtype="http://schema.org/Product" id="ng-app" ng-app="phi">
 	{% include '../includes/head.html' %}
-	<body>
-		<div class="navbar navbar-inverse navbar-fixed-top" data-ng-include="'/public/system/views/header.html'" data-role="navigation"></div>
+	<body ng-controller="AppCtrl">
+		<div data-ng-include="'system/views/header.tpl.html'" data-role="navigation"></div>
+    <div data-ng-include="'system/views/notifications.tpl.html'" class="container-fluid" data-ng-show="notifications.getCurrent().length" style="margin-top:60px;"></div>
 		<section class="content">
-            <section class="container">
-		        {% block content %}{% endblock %}
-            </section>
-        </section>
-        {% include '../includes/foot.html' %}
-    </body>
+      <div class="container">
+        {% block content %}{% endblock %}
+      </div>
+    </section>
+
+    {% include '../includes/foot.html' %}
+  </body>
 </html>

@@ -12,12 +12,15 @@ var express = require('express'),
     expressValidator = require('express-validator'),
     appPath = process.cwd(),
     fs = require('fs'),
+    assets = require('./assets.json'),
     assetmanager = require('assetmanager');
 
 module.exports = function(app, passport, db) {
 
   // cache=memory or swig dies in NODE_ENV=production
-  app.locals.cache = 'memory';
+  if (process.env.NODE_ENV === 'production') {
+    app.locals.cache = 'memory';
+  }
 
   // Setting the fav icon and static folder
   app.use(express.favicon(config.root + '/public/auth/assets/img/icons/favicon.ico'));
@@ -77,8 +80,6 @@ module.exports = function(app, passport, db) {
     app.use(expressValidator());
     app.use(express.methodOverride());
 
-    // Import your asset file
-    var assets = require('./assets.json');
     assetmanager.init({
       js: assets.js,
       css: assets.css,
@@ -88,7 +89,8 @@ module.exports = function(app, passport, db) {
     // Add assets to local variables
     app.use(function(req, res, next) {
       res.locals({
-        assets: assetmanager.assets
+        assets: assetmanager.assets,
+        vendors: assets.vendors
       });
       next();
     });
@@ -114,6 +116,19 @@ module.exports = function(app, passport, db) {
 
     // Dynamic helpers
     app.use(helpers(config.app.name));
+    app.use(function(req, res, next) {
+      if (!req.session.locale) {
+        req.session.locale = config.app.locale;
+      }
+      res.locals({locale: req.session.locale});
+
+      if (process.env.NODE_ENV === 'production') {
+        res.locals({version: require(process.cwd() + '/package.json').version});
+      } else {
+        res.locals.version = new Date().getTime();
+      }
+      next();
+    });
 
     // Routes should be at the last
     app.use(app.router);

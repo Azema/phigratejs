@@ -1,20 +1,26 @@
 {
 	"css": {
-		"public/build/css/dist.min.css": [
-			"public/system/lib/bootstrap/dist/css/bootstrap.css",
-			"public/**/assets/css/*.css"
+		"public/build/css/phigratejs.min.css": [
+			"public/build/css/phigratejs.css"
 		]
 	},
+	"vendors": [
+		"public/vendor/jquery/dist/jquery.min.js",
+		"public/vendor/angular/angular.min.js",
+		"public/vendor/angular-route/angular-route.min.js",
+		"public/vendor/angular-bootstrap/ui-bootstrap.min.js",
+		"public/vendor/angular-bootstrap/ui-bootstrap-tpls.min.js"
+	],
 	"js": {
-		"public/build/js/dist.min.js": [
-			"public/system/lib/angular/angular.js",
-			"public/system/lib/angular-routes/angular-routes.js",
-			"public/system/lib/angular-resource/angular-resource.js",
-			"public/system/lib/angular-bootstrap/ui-bootstrap.js",
-			"public/system/lib/angular-bootstrap/ui-bootstrap-tpls.js",
+		"app": [
 			"public/init.js",
-			"public/*/*.js",
-			"public/*/*/*.js"
+			"public/build/templates/app.js",
+			"public/auth/auth.js",
+			"public/system/system.js",
+			"public/projects/projects.js",
+			"public/auth/*/*.js",
+			"public/system/*/*.js",
+			"public/projects/*/*.js"
 		]
 	}
 }

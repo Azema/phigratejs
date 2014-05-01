@@ -1,14 +1,22 @@
 <div id="scipts">
     <script type="text/javascript">
-        window.user = {{user|safe}};
-        window.roles = {{roles|safe}};
+      window.locale = "{{locale|safe}}";
     </script>
-{% for file in assets.js %}
-	<script type="text/javascript" src="{{file}}"></script>
-{% endfor %}
+{% if (process.env.NODE_ENV == 'production') %}
+  <script type="text/javascript" src="/public/build/js/phigratejs.min.js?v={{version}}"></script>
+{% else %}
+  {% for file in vendors %}
+  	<script type="text/javascript" src="/{{file}}?v={{version}}"></script>
+  {% endfor %}
+  {% for file in assets.js %}
+    <script type="text/javascript" src="/public/{{file}}?v={{version}}"></script>
+  {% endfor %}
+{% endif %}
+  <script type="text/javascript" src="/public/vendor/angular-i18n/angular-locale_{{locale}}.js?v={{version}}"></script>
+  <script type="text/javascript" src="/public/phi-i18n/phi-locale_{{locale}}.js?v={{version}}"></script>
 </div>
 
 {% if (process.env.NODE_ENV == 'development') %}
-	<!-- Livereload script rendered -->
-	<script type="text/javascript" src="{{'http://' + req.host + ':35729/livereload.js'}}"></script>
+  <!-- Livereload script rendered -->
+  <script type="text/javascript" src="{{'http://' + req.host + ':35729/livereload.js'}}"></script>
 {% endif %}

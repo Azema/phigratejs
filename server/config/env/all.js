@@ -16,6 +16,7 @@ module.exports = {
   app: {
     phigrate: {
       path: '/usr/local/bin/' // Path to Phigrate executable
-    }
+    },
+    locale: 'fr-fr'
   }
 };
