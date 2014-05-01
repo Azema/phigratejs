@@ -128,7 +128,13 @@ describe('Controller Users:', function() {
           User.remove(done);
         });
     });
+
+    after(function (done) {
+      User.remove();
+      request(app).get('/logout').end(done);
+    });
   });
+
   describe('User not logged in', function () {
 
     var agent = request.agent(app);
@@ -143,7 +149,7 @@ describe('Controller Users:', function() {
       user.save(done);
     });
 
-    it('should return 0', function (done) {
+    it('should return 0 when get loggedin', function (done) {
       agent
         .get('/loggedin')
         .set('Accept', 'application/json')
@@ -157,14 +163,29 @@ describe('Controller Users:', function() {
         });
     });
 
+    it('should return error 401 when get all users', function (done) {
+      agent
+        .get('/api/users')
+        .expect('Content-Type', /json/)
+        .expect(401)
+        .end(function(err, res) {
+          should.not.exist(err);
+          should.exist(res.body);
+          res.body.should.have.property('message');
+          res.body.message.should.be.equal('User is not authorized');
+          done();
+        })
+    });
+
     after(function (done) {
       if (user) {
         user.remove();
       }
-      done();
+      agent.get('/logout').end(done);
     });
   });
-  describe('User logged in', function() {
+
+  describe('User logged in with role authenticated', function() {
 
     var agent = request.agent(app);
 
@@ -205,6 +226,7 @@ describe('Controller Users:', function() {
           done();
         });
     });
+
     it('should return user name', function (done) {
       agent
         .get('/loggedin')
@@ -218,6 +240,21 @@ describe('Controller Users:', function() {
           done();
         });
     });
+
+    it('should return error 401 when get all users', function (done) {
+      agent
+        .get('/api/users')
+        .expect('Content-Type', /json/)
+        .expect(401)
+        .end(function(err, res) {
+          should.not.exist(err);
+          should.exist(res.body);
+          res.body.should.have.property('message');
+          res.body.message.should.be.equal('User is not authorized');
+          done();
+        })
+    });
+
     it('should log out user', function (done) {
       agent
         .get('/logout')
@@ -231,6 +268,58 @@ describe('Controller Users:', function() {
 
     after(function(done) {
       user.remove();
+      agent.get('/logout').end(done);
+    });
+  });
+
+  describe('When user is admin', function () {
+
+    var agent = request.agent(app);
+
+    before(function(done) {
+      user = new User({
+        name: 'Full name',
+        email: 'test@test.com',
+        username: 'user',
+        password: 'password',
+        roles: ['admin']
+      });
+      user.save(function(err) {
+        if (err) return done(err);
+        agent.post('/login')
+          .send({ email: user.email, password: user.password })
+          .expect(200)
+          .end(done);
+      });
+    });
+
+    it('should return users list', function (done) {
+      var users = [];
+      for (var i = 0; i < 10; i++) {
+        users.push({
+          name: 'Full name ' + i,
+          email: 'test'+i+'@test.com',
+          username: 'user'+i,
+          password: 'password'
+        });
+      };
+      User.create(users, function(err) {
+        agent
+          .get('/api/users')
+          .expect('Content-Type', /json/)
+          .expect(200)
+          .end(function(err, res) {
+            should.not.exist(err);
+            //console.log(res.body);
+            res.body.should.be.instanceof(Array);
+            res.body.should.be.length(11);
+            done();
+          });
+      });
+    });
+
+    after(function(done) {
+      User.remove();
       done();
     });
   });

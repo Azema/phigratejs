@@ -5,7 +5,6 @@
  */
 var utils = require('../utils'),
     should = require('should'),
-    assert = require('assert'),
     mongoose = require('mongoose'),
     supertest = require('supertest'),
     app = require(process.cwd() + '/server'),
@@ -319,7 +318,7 @@ describe('Controller Project:', function() {
         .expect(302)
         .end(function(err, res) {
           if (err) return done(err);
-          res.header['location'].should.include('/');
+          res.header.location.should.include('/');
           done();
         });
     });

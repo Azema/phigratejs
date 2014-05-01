@@ -77,7 +77,7 @@ UserSchema.path('hashed_password').validate(function(hashed_password) {
   return (typeof hashed_password === 'string' && hashed_password.length > 0);
 }, 'Password cannot be blank');
 
-UserSchema.path('hashed_password').validate(function(hashed_password) {
+UserSchema.path('hashed_password').validate(function() {
   if (this._password || this._confirmPassword) {
     if (typeof this._password !== 'string' || this._password.length < 8 || this._password.length > 20) {
       this.invalidate('password', 'Password must be between 8-20 characters long');
@@ -91,7 +91,7 @@ UserSchema.path('hashed_password').validate(function(hashed_password) {
 if (!UserSchema.options.hasOwnProperty('toJSON')) {
   UserSchema.options.toJSON = {};
 }
-UserSchema.options.toJSON.transform = function (doc, ret, options) {
+UserSchema.options.toJSON.transform = function (doc, ret) {
   // remove the _id of every document before returning the result
   delete ret.salt;
   delete ret.hashed_password;

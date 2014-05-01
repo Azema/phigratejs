@@ -1,12 +1,20 @@
 {
-    "name": "phigratejs",
-    "version": "0.0.1",
-    "dependencies": {
-        "angular": "1.2.16",
-        "angular-resource": "1.2.16",
-        "angular-mocks": "1.2.16",
-        "angular-route": "1.2.16",
-        "bootstrap": "3.1.1",
-        "angular-bootstrap": "0.10.0"
-    }
+  "name": "phigratejs",
+  "version": "0.0.1",
+  "authors": [
+    "Manuel Hervo <manuel.hervo@gmail.com>"
+  ],
+  "description": "Phigrate IHM",
+  "license": "MIT",
+  "private": false,
+  "dependencies": {
+    "angular": "1.2.16",
+    "angular-animate": "1.2.16",
+    "angular-bootstrap": "0.10.0",
+    "angular-i18n": "1.2.16",
+    "angular-mocks": "1.2.16",
+    "angular-route": "1.2.16",
+    "bootstrap": "3.1.1",
+    "jquery": "2.1.0"
+  }
 }

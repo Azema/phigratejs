@@ -1,7 +1,7 @@
 // updatedAt.js
 'use strict';
 
-module.exports = exports = function timestampsPlugin(schema, options) {
+module.exports = exports = function timestampsPlugin(schema/*, options*/) {
   schema.add({ createdAt: { type: Date, default: Date.now }, updatedAt: Date });
 
   schema.pre('save', function (next) {

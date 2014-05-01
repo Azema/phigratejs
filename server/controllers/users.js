@@ -62,6 +62,17 @@ exports.me = function(req, res) {
   res.jsonp(req.user || null);
 };
 
+exports.all = function(req, res) {
+  User.find()
+    .sort('-created')
+    .exec(function(err, users) {
+      if (err) {
+        return res.json(500, {message: err.errors});
+      }
+      res.json(200, users);
+    });
+};
+
 /**
  * Find user by id
  */
