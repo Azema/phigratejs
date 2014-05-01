@@ -1,5 +1,10 @@
 'use strict';
 
-angular.module('wcb.system').controller('IndexController', ['$scope', 'Global', function ($scope, Global) {
-    $scope.global = Global;
-}]);
+angular.module('phi.system')
+  .controller('HomeCtrl', [
+    '$scope',
+    '$location',
+    function ($scope, $location) {
+      $scope.title = 'Phigrate.js';
+    }
+  ]);

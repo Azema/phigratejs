@@ -1,0 +1,5 @@
+<div>
+  <button type="button" class="btn btn-primary save" ng-disabled="!canSave()" ng-click="save()">{{messages['btn-save']}}</button>
+  <button type="button" class="btn btn-warning revert" ng-click="revertChanges()" ng-disabled="!canRevert()">{{messages['btn-revert-changes']}}</button>
+  <button type="button" class="btn btn-danger remove" ng-click="remove()" ng-show="canRemove()">{{messages['btn-remove']}}</button>
+</div>

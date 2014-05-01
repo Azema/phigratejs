@@ -1,0 +1,60 @@
+<section>
+  <style type="text/css">
+    h4 {padding:5px;background-color:#326195;border-color:#080808;color:#fff;}
+    .headers {text-align:center;font-weight:bold;}
+    .pointer:hover {background-color:#76bf56;color:#204675;}
+    .container > div.row:last-child {
+      margin-top: 15px;
+    }
+    .shortcountry {text-transform: uppercase;}
+  </style>
+	<h1>{{messages['page.index.welcome']}}</h1>
+  <div class="container">
+  <!--
+    <div class="row">
+      <div class="col-md-6 col-xs-12">
+        <h4>Next matches</h4>
+        <div class="row headers">
+          <div class="col-md-2 col-xs-3">Date</div>
+          <div class="col-md-1 col-xs-2">Hour</div>
+          <div class="col-md-4 col-xs-5">Teams</div>
+          <div class="col-md-1 col-xs-1">Bets</div>
+        </div>
+        <div class="row" data-ng-repeat="match in matches">
+          <div class="col-md-2 col-xs-4" data-ng-if="width>767">{{match.date|date}}</div>
+          <div class="col-md-2 col-xs-3" data-ng-if="width<767">{{match.date|date:"d/M/yyyy"}}</div>
+          <div class="col-md-1 col-xs-2">{{match.date|date: "HH:mm"}}</div>
+          <div data-ng-click="showMatch(match)" title="show match" class="col-md-4 col-xs-5 pointer">
+            <span data-ng-if="width>767">{{match.teamHome.team.country}} - {{match.teamAway.team.country}}</span>
+            <span data-ng-if="width<767" class="shortcountry">{{match.teamHome.team.shortcountry}} - {{match.teamAway.team.shortcountry}}</span>
+          </div>
+          <div class="col-md-1 col-xs-1">{{betsOfLastMatches[match._id] || 0}}</div>
+        </div>
+      </div>
+      <div class="col-md-6 col-xs-12">
+        <h4>Last users</h4>
+        <div class="row" data-ng-repeat="user in users">
+          <div class="col-md-2 col-xs-4" data-ng-if="width>767">{{user.created|date}}</div>
+          <div class="col-md-2 col-xs-4" data-ng-if="width<767">{{user.created|date:'d/M/yyyy'}}</div>
+          <div class="col-md-4 col-xs-8">{{user.username}}</div>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-6 col-xs-12">
+        <h4>Last pronostics</h4>
+        <div class="row headers">
+          <div class="col-md-3 col-xs-4">Created at</div>
+          <div class="col-md-3 col-xs-4">User</div>
+          <div class="col-md-4 col-xs-4">Winner</div>
+        </div>
+        <div class="row" data-ng-repeat="bet in bets">
+          <div class="col-md-3 col-xs-4" data-ng-if="width>767">{{bet.created|date}}</div>
+          <div class="col-md-3 col-xs-4" data-ng-if="width<767">{{bet.created|date:'d/M/yyyy'}}</div>
+          <div class="col-md-3 col-xs-4">{{bet.user.username}}</div>
+          <div class="col-md-4 col-xs-4">{{bet.winner.team.country}}</div>
+        </div>
+      </div>
+    </div>
+ -->  </div>
+</section>

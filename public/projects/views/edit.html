@@ -1,0 +1,35 @@
+<section>
+	<form class="form-horizontal col-md-6" role="form" novalidate data-crud-edit="project">
+		<legend>{{messages.projects.form.legend}}</legend>
+
+		<div class="form-group" data-ng-class="{'has-error': errors && errors.title}">
+			<label class="col-md-3 control-label">{{messages['projects.form.label.title']}}</label>
+			<div class="col-md-9">
+				<input type="text" class="form-control" id="title"
+					data-ng-model="project.title" placeholder="{{messages['projects.form.placeholder.title']}}" data-required/>
+				<span data-ng-if="errors && errors.title" class="help-block animated fadeIn">{{errors.title}}</span>
+			</div>
+		</div>
+
+		<div class="form-group" data-ng-class="{'has-error': errors && errors.config_path}">
+			<label class="col-md-3 control-label">{{messages['projects.form.label.config_path']}}</label>
+			<div class="col-md-9">
+				<input type="text" class="form-control" id="config_path"
+					data-ng-model="project.config_path" placeholder="{{messages['projects.form.placeholder.config_path']}}" data-required/>
+				<span data-ng-if="errors && errors.config_path" class="help-block animated fadeIn">{{errors.config_path}}</span>
+			</div>
+		</div>
+
+		<div class="form-group" data-ng-class="{'has-error': errors && errors.section}">
+			<label class="col-md-3 control-label">{{messages['projects.form.label.section']}}</label>
+			<div class="col-md-9">
+				<input type="text" class="form-control" id="section"
+					data-ng-model="project.section" placeholder="{{messages['projects.form.placeholder.section']}}" data-required/>
+				<span data-ng-if="errors && errors.section" class="help-block animated fadeIn">{{errors.section}}</span>
+			</div>
+		</div>
+
+		<hr>
+    <crud-buttons></crud-buttons>
+	</form>
+</section>

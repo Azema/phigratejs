@@ -1,0 +1,10 @@
+<div class="col-xs-12 col-md-12 col-lg-12">
+	<div data-ng-repeat="project in projects">
+		<div class="col-lg-3 col-xs-12 col-md-6" style="border:1px solid black;border-radius:15px;margin-right:15px;">
+			<div class="thumbnail" data-ng-click="show(project.$id())">
+				<div>{{project.title}}</div>
+				<div>Nb migration files: {{project.migrations.migrations.length}}</div>
+			</div>
+		</div>
+	</div>
+</div>

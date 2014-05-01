@@ -1,7 +1,7 @@
 'use strict';
 
-angular.module('wcb-factory-interceptor',[])
-    .factory('httpInterceptor', ['$q','$location',function ($q,$location) {
+/*angular.module('phi-factory-interceptor',[])
+    .factory('httpInterceptor', ['$q', '$location', function ($q, $location) {
         return {
             'response': function(response) {
                 if (response.status === 401) {
@@ -27,3 +27,4 @@ angular.module('wcb-factory-interceptor',[])
     .config(['$httpProvider',function($httpProvider) {
         $httpProvider.interceptors.push('httpInterceptor');
     }]);
+*/

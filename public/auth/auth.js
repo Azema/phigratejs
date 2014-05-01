@@ -1,3 +1,3 @@
 'use strict';
 
-angular.module('wcb.auth', []);
+angular.module('phi.auth', ['phi.auth.security']);

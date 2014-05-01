@@ -1,0 +1,93 @@
+<div class="page-header" data-ng-controller="HeaderCtrl" data-ng-class="{viewport:width<768}">
+  <div class="navbar navbar-inverse navbar-fixed-top" data-ng-if="width > 767">
+    <div class="logo pull-left">
+      <a class="navbar-brand" href="/">Phigrate.js</a>
+    </div>
+
+    <div class="left pull-left">
+      <ul class="navbar-nav nav">
+        <li data-ng-repeat="item in menus" data-ng-class="{active: isActive(item.link)}">
+          <a data-ng-if="item.show()" data-ng-href='{{item.link}}'>{{item.title}}</a>
+        </li>
+      </ul>
+    </div>
+
+    <div class="account pull-right">
+      <ul class="navbar-nav nav" data-ng-hide="isAuthenticated()">
+        <li>
+          <select data-ng-model="form.locale" name="locale" style="margin-top:15px;"
+            data-ng-options="locale.key as locale.label for locale in locales"></select>
+        </li>
+        <li class="divider-vertical"></li>
+        <li><a href="#" data-ng-click="register()">{{messages['menu.register']}}</a></li>
+        <li class="divider-vertical"></li>
+        <li><a href="#" data-ng-click="login()">{{messages['menu.signin']}}</a></li>
+      </ul>
+      <ul class="navbar-nav nav" data-ng-show="isAuthenticated()">
+        <li class="dropdown">
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+            {{user().name}} <b class="caret"></b>
+          </a>
+          <ul class="dropdown-menu">
+            <li><a data-ng-click="logout()" href="#">{{messages['menu.signout']}}</a></li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="mobilewrap" data-ng-if="width < 768">
+    <div class="navbar sectionh-wrap">
+      <div class="container">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="/worldcup/index.html">
+            <h1>Phigrate.js</h1>
+          </a>
+          <i class="navbar-toggle navbar-section-toggle pointer" style="right:30px;" data-ng-click="toggleMenu=!toggleMenu" data-ng-init="toggleMenu=false">
+            <span class="sr-only">Toggle section navigation</span>
+            <span class="icon-bar"> </span>
+            <span class="icon-bar"> </span>
+            <span class="icon-bar"> </span>
+          </i>
+          <i class="navbar-toggle navbar-section-toggle pointer" data-ng-click="toggleAccount=!toggleAccount" data-ng-init="toggleAccount=false" style="background-image:none;">
+            <span class="glyphicon glyphicon-user"></span>
+          </i>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidenav sidenav-section bottom" data-ng-show="toggleMenu" data-ng-click="toggleMenu=false">
+      <h1>Phigrate.js</h1>
+      <div class="navbar navbar-sectionheader">
+        <div class="container">
+          <div class="nav-wrap">
+            <ul class="nav nav-pills lev2">
+              <li data-ng-repeat="item in menus" data-ng-class="{active: isActive(item.link),first: $first}">
+                <a data-ng-if="item.show" data-ng-href="{{item.link}}"><span>{{item.title}}</span></a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="sidenav sidenav-section bottom" data-ng-show="toggleAccount" data-ng-click="toggleAccount=false">
+      <div class="navbar navbar-sectionheader">
+        <div class="container">
+          <div class="nav-wrap">
+
+            <ul class="nav nav-pills lev2" data-ng-if="!isAuthenticated()">
+              <li><a href="#" data-ng-click="register()">{{messages['menu.register']}}</a></li>
+              <li class="divider-vertical"></li>
+              <li><a href="#" data-ng-click="login()">{{messages['menu.signin']}}</a></li>
+            </ul>
+            <ul class="nav nav-pills lev2" data-ng-show="isAuthenticated()">
+              <li>
+                <a data-ng-click="logout()" href="#">{{messages['menu.signout']}}</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

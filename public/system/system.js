@@ -1,3 +1,8 @@
 'use strict';
 
-angular.module('wcb.system', ['wcb.controllers.login','wcb-factory-interceptor']);
+angular.module('phi.system', [
+  'phi.auth',
+  'phi.system.notifications',
+  'phi.system.localizedMessages',
+  'phi.system.i18nNotifications'
+]);
