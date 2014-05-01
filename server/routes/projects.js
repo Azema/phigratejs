@@ -3,7 +3,6 @@
 // Projects routes use projects controller
 var projects = require('../controllers/projects');
 var authorization = require('./middlewares/authorization');
-var mongoose = require('mongoose');
 
 // Project authorization helpers
 var hasAuthorization = function(req, res, next) {
@@ -18,6 +17,7 @@ module.exports = function(app) {
   app.get('/api/projects', authorization.requiresLogin, projects.all);
   app.post('/api/projects', authorization.requiresLogin, projects.create);
   app.get('/api/projects/:projectId', authorization.requiresLogin, hasAuthorization, projects.show);
+  app.get('/api/projects/:projectId/migration/:migrationId', authorization.requiresLogin, hasAuthorization, projects.migration);
   app.put('/api/projects/:projectId', authorization.requiresLogin, hasAuthorization, projects.update);
   app.del('/api/projects/:projectId', authorization.requiresLogin, hasAuthorization, projects.destroy);
 

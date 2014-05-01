@@ -5,8 +5,8 @@
  */
 var mongoose = require('mongoose'),
     Project = mongoose.model('Project'),
-    User = mongoose.model('User'),
     _ = require('lodash'),
+    path = require('path'),
     migrations = require('../lib/migrations');
 
 /**
@@ -47,12 +47,12 @@ var findProject = function(user, id, next) {
  */
 exports.create = function(req, res) {
   var project = new Project(req.body);
-  req.user.addProject(project, function(err, user) {
+  req.user.addProject(project, function(err) {
     if (err) {
       var ret = checkErrors(err);
       return res.json(ret.code, ret.message);
     } else {
-      res.jsonp(project);
+      res.json(200, {status: true, result: project});
     }
   });
 };
@@ -74,7 +74,7 @@ exports.update = function(req, res) {
         var ret = checkErrors(err);
         return res.json(ret.code, ret.message);
       } else {
-        res.jsonp(newProject);
+        res.json(200, {status: true, result: newProject});
       }
     });
   });
@@ -101,6 +101,24 @@ exports.destroy = function(req, res) {
   });
 };
 
+exports.migration = function(req, res) {
+  if (req.param('migrationId') === null) {
+    return res.json(412, {message: 'migrationId is required'});
+  }
+  findProject(req.user, req.param('projectId'), function(err, project) {
+    if (err) {
+      console.log(err);
+      return res.json(500, {message: err.errors});
+    }
+    migrations.getCodeMigration(project.config_path, project.section, req.param('migrationId'), function (err, code) {
+      if (err) {
+        return res.json(500, {message: err});
+      }
+      return res.send(code);
+    });
+  });
+};
+
 /**
  * Show an project
  */
@@ -110,19 +128,15 @@ exports.show = function(req, res) {
       console.log(err);
       return res.json(500, {message: err});
     }
-    if (req.param('migrations')) {
-      migrations.getProjectMigrationFiles(project.config_path, project.section, function(err, files) {
-        if (err) {
-          console.log(err);
-          return res.json(500, {message: err});
-        }
-        project = project.toJSON();
-        project.migrations = files;
-        res.jsonp(project);
-      });
-    } else {
-      res.jsonp(project);
-    }
+    migrations.getMigrations(project.config_path, project.section, function(err, migrations) {
+      if (err) {
+        console.log(err);
+        return res.json(500, {message: err});
+      }
+      project = project.toJSON();
+      project.migrations = migrations;
+      res.json(200, {status: true, result: project});
+    });
   });
 };
 
@@ -138,7 +152,33 @@ exports.all = function(req, res) {
         console.log(err);
         res.json(500, {message: err});
       } else {
-        res.jsonp(projects);
+        var project, p = 0, projectsMigr = [], configDir;
+        var cb_migrations = function(err, files) {
+          if (err) {
+            console.log(err);
+            project.errors = err.message;
+          } else {
+            project.migrations = files;
+          }
+          projectsMigr.push(project);
+          if (++p === projects.length) {
+            res.json(200, {status: true, result: projectsMigr});
+          }
+        };
+        var cb_app = function(err, objAppIni) {
+          if (err) {
+            project.errors = err;
+          } else {
+            configDir = path.dirname(project.config_path);
+            migrations.getProjectMigrationFiles(configDir, objAppIni, project.section, cb_migrations);
+          }
+        };
+        // Récupérer le nombre de migrations
+        // Vérifer si les projets sont à jour
+        for (var i = 0; i < projects.length; i++) {
+          project = projects[i].toJSON();
+          migrations.getApplicationIniObj(project.config_path, cb_app);
+        }
       }
     });
 };

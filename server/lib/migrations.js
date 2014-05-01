@@ -47,6 +47,100 @@ var Migrate = function(migrationFile) {
 };
 
 /**
+ * Return application INI object if found
+ *
+ * @param {String}   configPath - Directory path system of application.ini
+ * @param {Function} done       - Callback (err, objIni)
+ * @api public
+ */
+var getApplicationIni = function(configPath, done) {
+  // Check if application config file exists
+  if (!fs.existsSync(configPath)) {
+    return done(new Error('Application config file not found! (' + configPath + ')'));
+  }
+  // Load and parse ini file
+  ini.load(configPath, done);
+};
+module.exports.getApplicationIniObj = getApplicationIni;
+
+/**
+ * Check if path parameter is relative
+ *
+ * @param {String} pathDir - the path to check
+ * @return {Boolean}
+ * @api private
+ */
+var isRelativePath = function(pathDir) {
+  if (/^\.\//.test(pathDir) || /^\.\.\//.test(pathDir)) {
+    return true;
+  }
+  return false;
+};
+
+/**
+ * Normalize path of migrations directory
+ *
+ * @param {String} configPath   - Directory path system of application.ini
+ * @param {String} migrationDir - Value of migration dir define in application.ini
+ * @api private
+ */
+var normalizeMigrationDir = function(configPath, migrationDir) {
+  if (isRelativePath(migrationDir)) {
+    migrationDir = path.normalize(configPath + '/' + migrationDir);
+  }
+  if (!fs.existsSync(migrationDir)) {
+    throw new Error('Migrations dir not found! (' + migrationDir + ')');
+  }
+  return migrationDir;
+};
+
+/**
+ * Normalize path of migrations directory
+ *
+ * @param {String} configPath - Directory path system of application.ini
+ * @param {String} dbFilePath - Value of db config define in application.ini
+ * @api private
+ */
+var normalizeDbConfigFile = function(configPath, dbFilePath) {
+  if (isRelativePath(dbFilePath)) {
+    dbFilePath = path.normalize(configPath + '/' + dbFilePath);
+  }
+  if (!fs.existsSync(dbFilePath)) {
+    throw new Error('Migrations dir not found! (' + dbFilePath + ')');
+  }
+  return dbFilePath;
+};
+
+/**
+ * Retrieve all files in dir and return Migrate array
+ *
+ * @param {String}   dir - Directory path
+ * @param {Function} cb  - Callback
+ * @api private
+ */
+var walkDir = function (dir, cb) {
+  var results = [];
+  fs.readdir(dir, function (err, list) {
+    if (err) { return cb(err); }
+
+    var pending = list.length;
+
+    if (!pending) { return cb(null, results); }
+
+    list.forEach(function (file) {
+      file = dir + '/' + file;
+      fs.stat(file, function (err, stat) {
+        if (stat && stat.isFile()) {
+          results.push(new Migrate(file));
+        }
+
+        if (!--pending) { cb(null, results); }
+      });
+    });
+  });
+};
+
+/**
  * Retourne les numéros des fichiers de migrations correspondant au path et à la section fournies
  *
  * @param {String} configPath - Le chemin d'accès au fichiers de config du projet
@@ -54,41 +148,63 @@ var Migrate = function(migrationFile) {
  * @return {Object{}}
  * @api public
  */
-module.exports.getProjectMigrationFiles = function(configPath, section, done) {
-  // Récupération du fichier application.ini
-  getApplicationIni(configPath, function(err, objAppIni) {
+var getProjectMigrationFiles = function(configDir, objAppIni, section, done) {
+  // Check presence of section
+  if (!objAppIni.hasOwnProperty(section)) {
+    return done(new Error('section (' + section + ') not found in application config !'));
+  }
+  if (!objAppIni[section].hasOwnProperty('migration')) {
+    return done(new Error('migration.dir not found in config file!'));
+  }
+  var migrationDir;
+  try {
+    migrationDir = normalizeMigrationDir(configDir, objAppIni[section].migration.dir);
+  } catch (e) {
+    return done(e);
+  }
+  walkDir(migrationDir, function(err, results) {
     if (err) {
       return done(err);
     }
-    // Check presence of section
-    if (!objAppIni.hasOwnProperty(section)) {
-      return done(new Error('section (' + section + ') not found in application config !'));
+    var migrations = {dir: migrationDir, migrations: results};
+
+    done(null, migrations);
+  });
+};
+module.exports.getProjectMigrationFiles = getProjectMigrationFiles;
+
+/**
+ * Create connection to DB
+ *
+ * @param {Object}   dbIniObj - The db config Ini object
+ * @param {Function} done     - Callback (err, connection)
+ * @api private
+ */
+var getConnDb = function(driver, dbIniObj, done) {
+  var options = {};
+  var optionsAllowed = ['host', 'port', 'user', 'password', 'database', 'socketPath'];
+  Object.keys(dbIniObj).forEach(function(key) {
+    if (optionsAllowed.indexOf(key) !== -1) {
+      options[key] = dbIniObj[key];
+    } else if (key === 'socket') {
+      options.socketPath = dbIniObj[key];
     }
-    if (!objAppIni[section].hasOwnProperty('migration')) {
-      return done(new Error('migration.dir not found in config file!'));
+  });
+  if (Object.keys(options).length <= 0) {
+    return done(new Error('No data config found for connect to DB!'));
+  }
+  if (null === driver) {
+    driver = mysql;
+  }
+  var connection = driver.createConnection(options);
+
+  connection.connect(function(err) {
+    if (err) {
+      // console.error('error connecting: ' + err.stack);
+      return done(new Error('connecting to DB: ' + err.message));
     }
-    var configDir = path.dirname(configPath);
-    try {
-      var migrationDir = normalizeMigrationDir(configDir, objAppIni[section].migration.dir);
-    } catch (e) {
-      return done(e);
-    }
-    walkDir(migrationDir, function(err, results) {
-      if (err) {
-        return done(err);
-      }
-      var migrations = {dir: migrationDir, migrations: results};
-      migrations.migrations.sort(function(a, b) {
-        return (a.id == b.id) ? 0 : (a.id < b.id) ? -1 : 1;
-      });
-      done(null, migrations);
-    });
-    // var databaseConfPath = objAppIni[section].database.config;
-    // getDatabaseIni(configDir, databaseConfPath, function(err, objDbIni) {
-    //   if (err) {
-    //     return done(err);
-    //   }
-    // });
+
+    done(null, connection);
   });
 };
 
@@ -151,76 +267,24 @@ var mergeMigrations = function(versionsDb, migrateList) {
       index, migrateObj;
   for (var i = 0; i < migrateList.length; i++) {
     if ((index = versionsDb.indexOf(migrateList[i].id)) !== -1) {
-      migrateList[i].status = MIGRATE_STATUS_IN_DB;
-      versRemaining.splice(index, 1);
+      migrateList[i].status = MIGRATE_STATUS_IN_DB; // 1
+      versRemaining.splice(versRemaining.indexOf(migrateList[i].id), 1);
     } else {
-      migrateList[i].status = MIGRATE_STATUS_NOT_IN_DB;
+      migrateList[i].status = MIGRATE_STATUS_NOT_IN_DB; // 0
     }
   }
   for (var r = 0; r < versRemaining.length; r++) {
     migrateObj = new Migrate();
     migrateObj.id = versRemaining[r];
-    migrateObj.status = MIGRATE_STATUS_NO_FILE;
+    migrateObj.status = MIGRATE_STATUS_NO_FILE; // 2
     migrateList.push(migrateObj);
   }
   migrateList.sort(function(a, b) {
-    return (a.id == b.id) ? 0 : (a.id < b.id) ? -1 : 1;
+    return (a.id === b.id) ? 0 : (a.id < b.id) ? -1 : 1;
   });
   return migrateList;
 };
 module.exports.mergeMigrations = mergeMigrations;
-
-/**
- * Create connection to DB
- *
- * @param {Object}   dbIniObj - The db config Ini object
- * @param {Function} done     - Callback (err, connection)
- * @api private
- */
-var getConnDb = function(driver, dbIniObj, done) {
-  var options = {};
-  var optionsAllowed = ['host', 'port', 'user', 'password', 'database', 'socketPath'];
-  Object.keys(dbIniObj).forEach(function(key) {
-    if (optionsAllowed.indexOf(key) !== -1) {
-      options[key] = dbIniObj[key];
-    } else if (key === 'socket') {
-      options.socketPath = dbIniObj[key];
-    }
-  });
-  if (Object.keys(options).length <= 0) {
-    return done(new Error('No data config found for connect to DB!'));
-  }
-  if (null === driver) {
-    driver = mysql;
-  }
-  var connection = driver.createConnection(options);
-
-  connection.connect(function(err) {
-    if (err) {
-      // console.error('error connecting: ' + err.stack);
-      return done(new Error('connecting to DB: ' + err.message));
-    }
-
-    done(null, connection);
-  });
-};
-
-/**
- * Return application INI object if found
- *
- * @param {String}   configPath - Directory path system of application.ini
- * @param {Function} done       - Callback (err, objIni)
- * @api public
- */
-var getApplicationIni = function(configPath, done) {
-  // Check if application config file exists
-  if (!fs.existsSync(configPath)) {
-    return done(new Error('Application config file not found! (' + configPath + ')'));
-  }
-  // Load and parse ini file
-  ini.load(configPath, done);
-};
-module.exports.getApplicationIniObj = getApplicationIni;
 
 /**
  * Return database INI object if found
@@ -239,62 +303,84 @@ var getDatabaseIni = function(dbConfigPath, done) {
 };
 module.exports.getDbIniObj = getDatabaseIni;
 
-/**
- * Normalize path of migrations directory
- *
- * @param {String} configPath   - Directory path system of application.ini
- * @param {String} migrationDir - Value of migration dir define in application.ini
- * @api private
- */
-var normalizeMigrationDir = function(configPath, migrationDir) {
-  if (isRelativePath(migrationDir)) {
-    migrationDir = path.normalize(configPath + '/' + migrationDir);
-  }
-  if (!fs.existsSync(migrationDir)) {
-    throw new Error('Migrations dir not found! (' + migrationDir + ')');
-  }
-  return migrationDir;
-};
+module.exports.getMigrations = function(configPath, section, done) {
+    // Récupération du fichier application.ini
+  getApplicationIni(configPath, function(err, objAppIni) {
+    if (err) {
+      return done(err);
+    }
+    var configDir = path.dirname(configPath);
+    getProjectMigrationFiles(configDir, objAppIni, section, function(err, migrations) {
+      if (err) {
+        return done(err);
+      }
 
-/**
- * Check if path parameter is relative
- *
- * @param {String} pathDir - the path to check
- * @return {Boolean}
- * @api private
- */
-var isRelativePath = function(pathDir) {
-  if (/^\.\//.test(pathDir) || /^\.\.\//.test(pathDir)) {
-    return true;
-  }
-  return false;
-};
-
-/**
- * Retrieve all files in dir and return Migrate array
- *
- * @param {String}   dir - Directory path
- * @param {Function} cb  - Callback
- * @api private
- */
-var walkDir = function (dir, cb) {
-  var results = [];
-  fs.readdir(dir, function (err, list) {
-    if (err) { return cb(err); }
-
-    var pending = list.length;
-
-    if (!pending) { return cb(null, results); }
-
-    list.forEach(function (file) {
-      file = dir + '/' + file;
-      fs.stat(file, function (err, stat) {
-        if (stat && stat.isFile()) {
-          results.push(new Migrate(file));
+      var dbConfigPath;
+      try {
+        dbConfigPath = normalizeDbConfigFile(configDir, objAppIni[section].database.config);
+      } catch (e) {
+        return done(e);
+      }
+      getDatabaseIni(dbConfigPath, function(err, objDbIni) {
+        if (err) {
+          return done(err);
         }
+        getMigrationsFromDb(null, objDbIni, section, function(err, versions) {
+          if (err) {
+            return done(err);
+          }
+          // migrateList.sort(function(a, b) {
+          //   return (a.id === b.id) ? 0 : (a.id < b.id) ? -1 : 1;
+          // }).reverse();
 
-        if (!--pending) { cb(null, results); }
+          migrations.migrations = mergeMigrations(versions, migrations.migrations).reverse();
+          done(null, migrations);
+        });
       });
     });
   });
 };
+
+var getContentMigration = function(dir, fnFilter, done) {
+  fs.readdir(dir, function (err, list) {
+    if (err) { return done(err); }
+
+    var pending = list.length;
+
+    if (!pending) { return done(null, null); }
+
+    list.forEach(function (file) {
+      if (fnFilter(file)) {
+        return fs.readFile(dir + '/' + file, done);
+      }
+      if (!--pending) { done(null, null); }
+    });
+  });
+};
+
+var getCodeMigration = function(configPath, section, migrationId, done) {
+  // Récupération du fichier application.ini
+  getApplicationIni(configPath, function(err, objAppIni) {
+    if (err) {
+      return done(err);
+    }
+    var configDir = path.dirname(configPath);
+    // Check presence of section
+    if (!objAppIni.hasOwnProperty(section)) {
+      return done(new Error('section (' + section + ') not found in application config !'));
+    }
+    if (!objAppIni[section].hasOwnProperty('migration')) {
+      return done(new Error('migration.dir not found in config file!'));
+    }
+    var migrationDir;
+    try {
+      migrationDir = normalizeMigrationDir(configDir, objAppIni[section].migration.dir);
+    } catch (e) {
+      return done(e);
+    }
+    var re = new RegExp('^' + migrationId + '_');
+    var fnFilter = function(name) { return re.test(name); };
+    getContentMigration(migrationDir, fnFilter, done);
+  });
+};
+module.exports.getCodeMigration = getCodeMigration;
