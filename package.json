@@ -3,7 +3,10 @@
   "description": "Phigrate IHM Web",
   "version": "0.0.1",
   "private": false,
-  "author": "Manuel Hervo <manuel.hervo@gmail.com>",
+  "author": {
+    "email": "manuel.hervo@gmail.com",
+    "name": "Manuel Hervo"
+  },
   "contributors": [],
   "license": "MIT",
   "keywords": [
@@ -40,6 +43,7 @@
     "express": "^3.5.1",
     "express-validator": "^1.0.1",
     "forever": "^0.10.11",
+    "grunt": "^0.4.4",
     "grunt-cli": "^0.1.13",
     "ini-reader": "git://github.com/Azema/ini-reader.js",
     "lodash": "^2.4.1",
@@ -54,12 +58,17 @@
   },
   "devDependencies": {
     "grunt-concurrent": "latest",
+    "grunt-contrib-clean": "^0.5.0",
+    "grunt-contrib-concat": "^0.4.0",
+    "grunt-contrib-copy": "^0.5.0",
     "grunt-contrib-csslint": "^0.2.0",
     "grunt-contrib-cssmin": "^0.9.0",
     "grunt-contrib-jshint": "latest",
+    "grunt-contrib-less": "^0.11.0",
     "grunt-contrib-uglify": "^0.4.0",
     "grunt-contrib-watch": "latest",
     "grunt-env": "^0.4.1",
+    "grunt-html2js": "^0.2.4",
     "grunt-karma": "^0.6.2",
     "grunt-mocha-test": "latest",
     "grunt-nodemon": "0.2.0",
@@ -69,7 +78,6 @@
     "load-grunt-tasks": "^0.4.0",
     "optimist": "^0.6.1",
     "should": "2.1.1",
-    "sinon": "^1.9.1",
     "supertest": "0.8.2",
     "time-grunt": "^0.3.1"
   }
