@@ -11,7 +11,6 @@ angular.module('phi.auth.security.service', [
 
   // Redirect to the given url (defaults to '/')
   function redirect(url) {
-    window.location.reload();
     if (null !== url) {
       $location.path(url);
     }
@@ -104,7 +103,7 @@ angular.module('phi.auth.security.service', [
         if ( service.isAuthenticated()) {
           closeLoginDialog(true);
         }
-        redirect();
+        // redirect();
         return service.isAuthenticated();
       });
     },
