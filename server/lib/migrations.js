@@ -46,6 +46,103 @@ var Migrate = function(migrationFile) {
   }
 };
 
+var MigrateCollection = function(dir, migrations) {
+  /**
+   * Migration directory
+   */
+  this.directory = '';
+  if (dir !== null) {
+    this.directory = dir;
+  }
+
+  /**
+   * Collection length
+   */
+  this.length = 0;
+
+  /**
+   * Collection migrations
+   */
+  this.collection = {};
+  if (migrations !== null) {
+    this.setCollection(migrations);
+  }
+
+  /**
+   * MigrateCollection status (isUpToDate)
+   * 0: No up to date
+   * 1: Up to date
+   */
+  this.status = 0;
+
+  this.updatedAt = new Date(Date.now());
+};
+
+MigrateCollection.prototype.addMigrate = function(migration) {
+  this.collection[migration.id] = migration;
+  this.length++;
+  return this;
+};
+
+MigrateCollection.prototype.setCollection = function(migrations) {
+  this.length = 0;
+  this.collection = {};
+  this.updatedAt = new Date(Date.now());
+  for (var i = 0; i < migrations.length; i++) {
+    this.addMigrate(migrations[i]);
+  }
+  return this;
+};
+
+MigrateCollection.prototype.sort = function() {
+  var sorted = {},
+    key, a = [];
+
+  for (key in this.collection) {
+    if (this.collection.hasOwnProperty(key)) {
+      a.push(key);
+    }
+  }
+
+  a.sort();
+
+  for (key = 0; key < a.length; ++key) {
+    sorted[a[key]] = this.collection[a[key]];
+  }
+  this.collection = sorted;
+  return this;
+};
+
+MigrateCollection.prototype.reverse = function() {
+  var sorted = {},
+    key, a = [];
+
+  for (key in this.collection) {
+    if (this.collection.hasOwnProperty(key)) {
+      a.push(key);
+    }
+  }
+
+  a.sort();
+
+  for (key = a.length-1; key >= 0; --key) {
+    sorted[a[key]] = this.collection[a[key]];
+  }
+  this.collection = sorted;
+  return this;
+};
+
+MigrateCollection.prototype.getMigrate = function(migrationId) {
+  return this.collection[migrationId];
+};
+
+MigrateCollection.prototype.setUpToDate = function(isUpToDate) {
+  this.status = 0;
+  if (isUpToDate) {
+    this.status = 1;
+  }
+};
+
 /**
  * Return application INI object if found
  *
@@ -166,7 +263,7 @@ var getProjectMigrationFiles = function(configDir, objAppIni, section, done) {
     if (err) {
       return done(err);
     }
-    var migrations = {dir: migrationDir, migrations: results};
+    var migrations = new MigrateCollection(migrationDir, results);
 
     done(null, migrations);
   });
@@ -264,24 +361,38 @@ module.exports.getMigrationsFromDb = getMigrationsFromDb;
  */
 var mergeMigrations = function(versionsDb, migrateList) {
   var versRemaining = _.cloneDeep(versionsDb),
-      index, migrateObj;
-  for (var i = 0; i < migrateList.length; i++) {
-    if ((index = versionsDb.indexOf(migrateList[i].id)) !== -1) {
-      migrateList[i].status = MIGRATE_STATUS_IN_DB; // 1
-      versRemaining.splice(versRemaining.indexOf(migrateList[i].id), 1);
+      migrateObj,
+      isUpToDate = true;
+
+  for (var id in migrateList.collection) {
+    if (versionsDb.indexOf(id) !== -1) {
+      migrateList.getMigrate(id).status = MIGRATE_STATUS_IN_DB; // 1
+      versRemaining.splice(versRemaining.indexOf(id), 1);
     } else {
-      migrateList[i].status = MIGRATE_STATUS_NOT_IN_DB; // 0
+      migrateList.getMigrate(id).status = MIGRATE_STATUS_NOT_IN_DB; // 0
+      isUpToDate = false;
     }
   }
+  // for (var i = 0; i < migrationIds.length; i++) {
+  //   if ((index = versionsDb.indexOf(migrateList.collection[i])) !== -1) {
+  //     migrateList.collection[migrationIds[i]].status = MIGRATE_STATUS_IN_DB; // 1
+  //     versRemaining.splice(versRemaining.indexOf(migrationIds[i]), 1);
+  //   } else {
+  //     migrateList.collection[migrationIds[i]].status = MIGRATE_STATUS_NOT_IN_DB; // 0
+  //     isUpToDate = false;
+  //   }
+  // }
   for (var r = 0; r < versRemaining.length; r++) {
     migrateObj = new Migrate();
     migrateObj.id = versRemaining[r];
     migrateObj.status = MIGRATE_STATUS_NO_FILE; // 2
-    migrateList.push(migrateObj);
+    migrateList.addMigrate(migrateObj);
+    isUpToDate = false;
   }
-  migrateList.sort(function(a, b) {
-    return (a.id === b.id) ? 0 : (a.id < b.id) ? -1 : 1;
-  });
+  migrateList.setUpToDate(isUpToDate);
+  // migrateList.sort(function(a, b) {
+  //   return (a.id === b.id) ? 0 : (a.id < b.id) ? -1 : 1;
+  // });
   return migrateList;
 };
 module.exports.mergeMigrations = mergeMigrations;
@@ -329,11 +440,8 @@ module.exports.getMigrations = function(configPath, section, done) {
           if (err) {
             return done(err);
           }
-          // migrateList.sort(function(a, b) {
-          //   return (a.id === b.id) ? 0 : (a.id < b.id) ? -1 : 1;
-          // }).reverse();
 
-          migrations.migrations = mergeMigrations(versions, migrations.migrations).reverse();
+          mergeMigrations(versions, migrations);
           done(null, migrations);
         });
       });
@@ -341,7 +449,9 @@ module.exports.getMigrations = function(configPath, section, done) {
   });
 };
 
-var getContentMigration = function(dir, fnFilter, done) {
+var getContentMigration = function(dir, migrationId, done) {
+  var re = new RegExp('^' + migrationId + '_');
+
   fs.readdir(dir, function (err, list) {
     if (err) { return done(err); }
 
@@ -350,37 +460,11 @@ var getContentMigration = function(dir, fnFilter, done) {
     if (!pending) { return done(null, null); }
 
     list.forEach(function (file) {
-      if (fnFilter(file)) {
+      if (re.test(file)) {
         return fs.readFile(dir + '/' + file, done);
       }
       if (!--pending) { done(null, null); }
     });
   });
 };
-
-var getCodeMigration = function(configPath, section, migrationId, done) {
-  // Récupération du fichier application.ini
-  getApplicationIni(configPath, function(err, objAppIni) {
-    if (err) {
-      return done(err);
-    }
-    var configDir = path.dirname(configPath);
-    // Check presence of section
-    if (!objAppIni.hasOwnProperty(section)) {
-      return done(new Error('section (' + section + ') not found in application config !'));
-    }
-    if (!objAppIni[section].hasOwnProperty('migration')) {
-      return done(new Error('migration.dir not found in config file!'));
-    }
-    var migrationDir;
-    try {
-      migrationDir = normalizeMigrationDir(configDir, objAppIni[section].migration.dir);
-    } catch (e) {
-      return done(e);
-    }
-    var re = new RegExp('^' + migrationId + '_');
-    var fnFilter = function(name) { return re.test(name); };
-    getContentMigration(migrationDir, fnFilter, done);
-  });
-};
-module.exports.getCodeMigration = getCodeMigration;
+module.exports.getContentMigration = getContentMigration;
