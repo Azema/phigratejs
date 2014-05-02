@@ -50,7 +50,7 @@ angular.module('phi.system')
 		  };
 
 		  $scope.logout = function() {
-		  	security.logout();
+		  	security.logout('/');
 		  };
 
 		  $scope.login = function() {
