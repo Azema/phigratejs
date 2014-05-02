@@ -9,3 +9,4 @@ modules/views/
 .vagrant
 box/
 coverage
+test/mocha/fixtures/project/migrate
