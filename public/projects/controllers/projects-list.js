@@ -13,6 +13,15 @@ angular.module('phi.projects')
 
       $scope.projects = projects;
 
+      $scope.refreshProject = function(project, $index) {
+        console.log(project.$id());
+        Projects.getById(project.$id(), {refresh: true}, function(newProject) {
+          if (newProject) {
+            $scope.projects[$index] = newProject;
+          }
+        });
+      };
+
       $scope.remove = function(project, $index, $event) {
         // Don't let the click bubble up to the ng-click on the enclosing div, which will try to trigger
         // an edit of this item.
