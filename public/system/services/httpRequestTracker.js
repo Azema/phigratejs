@@ -87,7 +87,7 @@ angular.module('phi.system')
         },
 
         'responseError': function(rejection) {
-          if (!isCached(rejection.config)) {
+          if (!angular.isDefined(rejection) || !isCached(rejection.config)) {
             if (--reqsTotal <= 0) {
               setComplete();
             }

@@ -11,11 +11,11 @@ angular.module('phi.system.crud', ['phi.system.crudRouteProvider'])
         $location.path(pathPrefix+'/new');
       };
 
-      mixin['edit'] = function (itemId) {
+      mixin.edit = function (itemId) {
         $location.path(pathPrefix + '/edit/' + itemId);
       };
 
-      mixin['show'] = function (itemId) {
+      mixin.show = function (itemId) {
         $location.path(pathPrefix + '/show/' + itemId);
       };
 

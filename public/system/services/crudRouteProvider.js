@@ -80,7 +80,7 @@
         },
         // Create a route that will handle editing an existing item
         whenEdit: function(resolveFns) {
-          routeBuilder.when(baseRoute + '/:itemId', {
+          routeBuilder.when(baseRoute + '/edit/:itemId', {
             templateUrl: templateUrl('Edit'),
             controller: controllerName('Edit'),
             resolve: resolveFns
