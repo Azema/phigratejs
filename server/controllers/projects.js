@@ -6,7 +6,6 @@
 var mongoose = require('mongoose'),
     Project = mongoose.model('Project'),
     _ = require('lodash'),
-    path = require('path'),
     migrations = require('../lib/migrations');
 
 /**
@@ -27,6 +26,30 @@ var checkErrors = function(err) {
     ret.message = msg;
   }
   return ret;
+};
+
+var getProjectMigrations = function(req, project, done) {
+  migrations.getMigrations(project.config_path, project.section, function(err, migrations) {
+    if (err) {
+      console.log(err);
+      return done(err);
+    }
+    project = project.toJSON();
+    project.migrations = migrations;
+    if (!req.session.projects) {
+      req.session.projects = {};
+    }
+    req.session.projects[project._id] = project;
+    done(null, project);
+  });
+};
+
+var deleteProjectInSession = function(req, projectId) {
+  if (req.session.projects && req.session.projects[projectId]) {
+    console.log('Before projects: ', Object.keys(req.session.projects));
+    delete(req.session.projects[projectId]);
+    console.log('After projects: ', Object.keys(req.session.projects));
+  }
 };
 
 /**
@@ -52,8 +75,14 @@ exports.create = function(req, res) {
       var ret = checkErrors(err);
       return res.json(ret.code, ret.message);
     } else {
-      res.json(200, {status: true, result: project});
-    }
+      getProjectMigrations(req, project, function(err, projectWithMigrations) {
+        if (err) {
+          console.log(err);
+          return res.json(500, {status: false, message: err.errors});
+        }
+        res.json(200, {status: true, result: projectWithMigrations});
+      });
+      }
   });
 };
 
@@ -68,13 +97,20 @@ exports.update = function(req, res) {
     }
 
     project = _.extend(project, req.body);
+    deleteProjectInSession(req, project._id);
 
     project.save(function(err, newProject) {
       if (err) {
         var ret = checkErrors(err);
         return res.json(ret.code, ret.message);
       } else {
-        res.json(200, {status: true, result: newProject});
+        getProjectMigrations(req, newProject, function(err, projectWithMigrations) {
+          if (err) {
+            console.log(err);
+            return res.json(500, {status: false, message: err.errors});
+          }
+          res.json(200, {status: true, result: projectWithMigrations});
+        });
       }
     });
   });
@@ -89,7 +125,8 @@ exports.destroy = function(req, res) {
       console.log(err);
       return res.json(500, {message: err});
     }
-
+    var projectId = req.param('projectId');
+    deleteProjectInSession(req, projectId);
     project.remove(function(err) {
       if (err) {
         var ret = checkErrors(err);
@@ -101,49 +138,75 @@ exports.destroy = function(req, res) {
   });
 };
 
+var sendContentMigration = function(res, project, migrationId) {
+  migrations.getContentMigration(project.migrations.directory, migrationId, function (err, code) {
+    if (err) {
+      return res.json(500, {message: err});
+    }
+    return res.send(code);
+  });
+};
+
 exports.migration = function(req, res) {
   if (req.param('migrationId') === null) {
     return res.json(412, {message: 'migrationId is required'});
   }
-  findProject(req.user, req.param('projectId'), function(err, project) {
-    if (err) {
-      console.log(err);
-      return res.json(500, {message: err.errors});
-    }
-    migrations.getCodeMigration(project.config_path, project.section, req.param('migrationId'), function (err, code) {
+  if (!req.param('refresh') && req.session.hasOwnProperty('projects') &&
+    req.session.projects[req.param('projectId')])
+  {
+    sendContentMigration(res, req.session.projects[req.param('projectId')], req.param('migrationId'));
+  } else {
+    findProject(req.user, req.param('projectId'), function(err, project) {
       if (err) {
-        return res.json(500, {message: err});
+        console.log(err);
+        return res.json(500, {message: err.errors});
       }
-      return res.send(code);
+      getProjectMigrations(req, project, function(err, projectWithMigrations) {
+        if (err) {
+          console.log(err);
+          return res.json(500, {status: false, message: err.errors});
+        }
+        sendContentMigration(res, projectWithMigrations, req.param('migrationId'));
+      });
     });
-  });
+  }
 };
 
 /**
  * Show an project
  */
 exports.show = function(req, res) {
-  findProject(req.user, req.param('projectId'), function(err, project) {
-    if (err) {
-      console.log(err);
-      return res.json(500, {message: err});
-    }
-    migrations.getMigrations(project.config_path, project.section, function(err, migrations) {
+  if (!req.param('refresh') && req.session.hasOwnProperty('projects') &&
+    req.session.projects[req.param('projectId')])
+  {
+    return res.json(200, {status: true, result: req.session.projects[req.param('projectId')]});
+  } else {
+    findProject(req.user, req.param('projectId'), function(err, project) {
       if (err) {
         console.log(err);
         return res.json(500, {message: err});
       }
-      project = project.toJSON();
-      project.migrations = migrations;
-      res.json(200, {status: true, result: project});
+      getProjectMigrations(req, project, function(err, projectWithMigrations) {
+        if (err) {
+          console.log(err);
+          return res.json(500, {status: false, message: err.errors});
+        }
+        res.json(200, {status: true, result: projectWithMigrations});
+      });
     });
-  });
+  }
 };
 
 /**
  * List of Projects
  */
 exports.all = function(req, res) {
+  if (!req.session.projects) {
+    req.session.projects = {};
+  } else if (!req.param('refresh')) {
+    console.log('projects: ', Object.keys(req.session.projects));
+    return res.json(200, {status: true, result: req.session.projects});
+  }
   Project.find({user: req.user})
     .sort('-created')
     .populate('user', 'username name')
@@ -152,32 +215,20 @@ exports.all = function(req, res) {
         console.log(err);
         res.json(500, {message: err});
       } else {
-        var project, p = 0, projectsMigr = [], configDir;
-        var cb_migrations = function(err, files) {
+        var p = 0;
+        var cb_migrations = function(err, projectWithMigrations) {
           if (err) {
             console.log(err);
-            project.errors = err.message;
-          } else {
-            project.migrations = files;
+            projectWithMigrations.errors = err.message;
           }
-          projectsMigr.push(project);
           if (++p === projects.length) {
-            res.json(200, {status: true, result: projectsMigr});
+            res.json(200, {status: true, result: req.session.projects});
           }
         };
-        var cb_app = function(err, objAppIni) {
-          if (err) {
-            project.errors = err;
-          } else {
-            configDir = path.dirname(project.config_path);
-            migrations.getProjectMigrationFiles(configDir, objAppIni, project.section, cb_migrations);
-          }
-        };
-        // Récupérer le nombre de migrations
-        // Vérifer si les projets sont à jour
+        // Retrieve the projects migrations
+        // Check if projects are up to date
         for (var i = 0; i < projects.length; i++) {
-          project = projects[i].toJSON();
-          migrations.getApplicationIniObj(project.config_path, cb_app);
+          getProjectMigrations(req, projects[i], cb_migrations);
         }
       }
     });

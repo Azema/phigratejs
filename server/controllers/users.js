@@ -11,6 +11,7 @@ var mongoose = require('mongoose'),
  */
 exports.signout = function(req, res) {
   req.logout();
+  req.session.destroy();
   res.redirect('/');
 };
 
