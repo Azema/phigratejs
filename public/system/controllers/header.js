@@ -60,5 +60,9 @@ angular.module('phi.system')
 		  $scope.register = function() {
 		  	security.showSignup();
 		  };
+
+		  $scope.refreshProjects = function() {
+		  	$rootScope.$broadcast('refreshProjects');
+		  };
 	  }
 	]);
