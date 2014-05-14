@@ -1,5 +1,18 @@
 /*
  * Projects list
  */
-.project {margin: 10px 30px;border:1px solid black;border-radius:15px;}
-.project .title {font-weight: bold;margin-bottom: 10px;margin-right:5px;}
+.project {
+  margin: 10px 30px;
+  border: 1px solid black;
+  border-radius: 15px;
+  padding-left: 10px;
+  padding-right: 10px;
+  &.out {background-color: #dd3848;}
+  &.upToDate {background-color: #2db471;}
+
+  .title {font-weight: bold;margin-bottom: 10px;margin-right:5px;}
+  .thumbnail {
+    margin-top: 10px;
+    margin-bottom: 10px;
+  }
+}

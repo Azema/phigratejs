@@ -11,7 +11,7 @@ angular.element(document).ready(function() {
 
 // Default modules
 var modules = [
-  'ngRoute', 'ngLocale',
+  'ngRoute', 'ngLocale', 'ngAnimate', 'ngSanitize',
   'ui.bootstrap',
   'templates.app',
   'phi.i18n', 'phi.system', 'phi.auth', 'phi.projects'

@@ -1,0 +1,23 @@
+<div class="row migration" data-ng-class="{'odd':odd,'even':even}" style="border:1px solid black;border-radius:5px;">
+  <span class="col-xs-9 col-md-9 col-lg-10"
+        data-ng-class="{pointer:migration.status <= 1}"
+        data-ng-click="showCode()">
+    <span class="glyphicon glyphicon-chevron-right" data-ng-show="!displayContent"></span>
+    <span class="glyphicon glyphicon-chevron-down" data-ng-show="displayContent"></span>
+    <span class="name">{{migration.name}}</span> ({{migration.id}})
+  </span>
+  <div class="pull-right col-xs-3 col-md-3 col-lg-2">
+    <div class="badge-migration file col-xs-1 col-md-1 col-lg-6" data-ng-switch="migration.status">
+      <div data-ng-switch-when="2" class="fail">F</div>
+      <div data-ng-switch-default="1" class="ok">F</div>
+    </div>
+    <div class="badge-migration db col-xs-1 col-md-1 col-lg-6 pointer" data-ng-switch="migration.status">
+      <div data-ng-switch-when="0" class="fail" data-ng-click="migrate()">DB</div>
+      <div data-ng-switch-default class="ok" data-ng-click="migrate()">DB</div>
+    </div>
+  </div>
+  <div class="content animate-content col-xs-12 col-md-12 col-lg-12"
+    data-ng-if="migration.code" data-ng-show="displayContent">
+    <pre class="lang-php" data-prettyprint="migration.code"></pre>
+  </div>
+</div>
