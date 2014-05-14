@@ -1,33 +1,32 @@
 <div class="col-xs-12 col-md-12 col-lg-12" style="border: 3px solid #bfbfbf;">
-  <div class="row">
-    <div class="col-md-3 col-lg-3" style="background-color:grey;">
-      <h2>{{project.title}}</h2>
-      <div>Nb migrations: {{project.migrations.length}}</div>
-      <div style="word-break: break-all;">Config: {{project.config_path}}</div>
-      <div>Section: {{project.section}} </div>
-      <div>UpToDate: <i class="glyphicon" data-ng-class="{'glyphicon-ok': project.migrations.status == 1, 'glyphicon-remove': project.migrations.status == 0}"></i></div>
-      <div style="word-break: break-all;">Migrations path: {{project.migrations.dir}}</div>
+  <div class="row project-infos">
+    <div class="col-md-3 col-lg-3" style="background-color:#2f3130;color:white;">
+      <h2><span data-ng-class="{fail:project.migrations.status==0,ok:project.migrations.status==1}">{{project.title}}</span>
+        <small class="glyphicon glyphicon-refresh pointer" data-ng-click="refreshProject()" title="Refresh project"></small>
+      </h2>
+      <dl>
+        <dt>Nb migrations:</dt>
+        <dd>{{project.migrations.length}}</dd>
+        <dt>Config:</dt>
+        <dd style="word-break: break-all;">{{project.config_path}}</dd>
+        <dt>Section:</dt>
+        <dd>{{project.section}}</dd>
+        <dt>Migrations path:</dt>
+        <dd style="word-break: break-all;">{{project.migrations.directory}}</dd>
+        <dt>Database path:</dt>
+        <dd style="word-break: break-all;">{{project.dbConfigPath}}</dd>
+      </dl>
     </div>
     <div class="col-xs-12 col-md-9 col-lg-9">
-      <div data-ng-repeat="key in project.migrations.collection | keys" data-ng-init="migration = project.migrations.collection[key]">
-        <div class="row migration" data-ng-class="{odd:$odd,even:$even}" style="border:1px solid black;border-radius:5px;">
-          <span class="pointer" data-ng-click="showCode(migration);displayContent=!displayContent">
-            <span class="caret"></span> <span class="name">{{migration.name}}</span> ({{migration.id}})
-          </span>
-          <div class="pull-right">
-            <div class="badge-migration file" data-ng-switch="migration.status">
-              <div data-ng-switch-when="2" class="fail">F</div>
-              <div data-ng-switch-when="1" class="ok">F</div>
-              <div data-ng-switch-when="0" class="ok">F</div>
-            </div>
-            <div class="badge-migration db" data-ng-switch="migration.status">
-              <div data-ng-switch-when="0" class="fail">DB</div>
-              <div data-ng-switch-when="1" class="ok">DB</div>
-              <div data-ng-switch-when="2" class="ok">DB</div>
-            </div>
-          </div>
-          <div class="content" data-ng-if="migration.code" data-ng-show="displayContent"><pre><code>{{migration.code}}</code></pre></div>
+      <div class="row" style="border:1px solid black;border-radius:5px;font-weight: bold;">
+        <span style="padding-left:20px; col-xs-9 col-md-9 col-lg-10">Migration Name</span>
+        <div class="pull-right col-xs-3 col-md-3 col-lg-2">
+          <div style="display:inline-block;" class="col-xs-1 col-md-1 col-lg-6">On disk</div>
+          <div style="display:inline-block;" class="col-xs-1 col-md-1 col-lg-6">On DB</div>
         </div>
+      </div>
+      <div data-ng-repeat="key in collection | keys">
+        <div data-phi-migration="collection[key]" data-project="project" data-odd="$odd" data-even="$even"></div>
       </div>
     </div>
   </div>

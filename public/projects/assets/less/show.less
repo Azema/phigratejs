@@ -1,23 +1,56 @@
 /*
  * Projects Show
  */
+.project-infos {
+  h2 span {
+    &.fail {
+      color: red;
+    }
+    &.ok {
+      color: green;
+    }
+  }
+  dl dt {margin-top: 10px;}
+  dl dd {margin-left: 10px;}
+  .migration {
+    color: #fff;
+    padding: 3px;
 
-.migration {
-  color: #fff;
-  padding: 3px;
+    &.odd {background-color: #2f3130;}
+    &.even {background-color: #252726;}
+    .name {font-weight: bold;}
 
-  &.odd {background-color: #2f3130;}
-  &.even {background-color: #252726;}
-  .name {font-weight: bold;}
+    .badge-migration {color:#fff;font-weight:bold;text-transform:uppercase;display:inline-block;}
+    .badge-migration > div {padding: 2px 2px;border-radius:2px;width: 30px;text-align: center;}
+    .badge-migration > div.fail {background-color: red;}
+    .badge-migration > div.ok {background-color: green;}
 
-  .badge-migration {color:#fff;font-weight:bold;text-transform:uppercase;display:inline-block;margin-right:10px;}
-  .badge-migration > div {padding: 2px 2px;border-radius:2px;width: 30px;text-align: center;}
-  .badge-migration > div.fail {background-color: red;}
-  .badge-migration > div.ok {background-color: green;}
+    .content {
+      margin-top: 10px;
+      pre {overflow: auto;}
+    }
+  }
+  .pointer {cursor: pointer;}
 
-  .content {
-    margin-top: 10px;
-    pre {background-color: #fff; color: #000; padding: 15px; overflow: auto;}
+  .animate-content.ng-leave.ng-leave-active,
+  .animate-content.ng-move,
+  .animate-content.ng-enter,
+  .animate-content.ng-hide {
+    opacity:0;
+  }
+
+  .animate-content.ng-leave,
+  .animate-content.ng-enter.ng-enter-active {
+    opacity:1;
+  }
+  .animate-content {
+    opacity:1;
+    -webkit-transition:all linear 0.5s;
+    -moz-transition:all linear 0.5s;
+    transition:all linear 0.5s;
+  }
+  .animate-content.ng-hide-add,
+  .animate-content.ng-hide-remove {
+    display:block!important;
   }
 }
-.pointer {cursor: pointer;}

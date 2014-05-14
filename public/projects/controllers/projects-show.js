@@ -1,14 +1,6 @@
 'use strict';
 
 angular.module('phi.projects')
-  .filter('keys', function() {
-    return function(input) {
-      if (!input) {
-        return [];
-      }
-      return Object.keys(input).sort().reverse();
-    };
-  })
   .controller('ProjectsShowCtrl', [
     '$scope',
     '$location',
@@ -19,32 +11,24 @@ angular.module('phi.projects')
     'project',
     function ($scope, $location, $http, i18nNotifications, localizedMessages, Projects, project) {
       $scope.project = project;
+      $scope.collection = project.migrations.collection;
 
-      $scope.isUpToDate = function() {
-        if (angular.isDefined($scope.upToDate)) {
-          return $scope.upToDate;
-        }
-        var upToDate = true;
-        for (var i = 0; i < project.migrations.migrations.length; i++) {
-          if (project.migrations.migrations[i].status !== 1) {
-            upToDate = false;
-            break;
+      $scope.$on('migrate', function(event) {
+        event.preventDefault();
+        $scope.refreshProject();
+      });
+
+      $scope.refreshProject = function() {
+        //console.log($scope.project.$id());
+        Projects.getById($scope.project.$id(), {refresh: true}, function(newProject) {
+          if (newProject) {
+            i18nNotifications.pushForCurrentRoute('crud.projects.refresh.success', 'success', {title: newProject.title});
+            $scope.project = newProject;
+            $scope.collection = newProject.migrations.collection;
           }
-        }
-        console.log('upToDate: ' + upToDate);
-        $scope.upToDate = upToDate;
-        return upToDate;
-      };
-      $scope.showCode = function(migration) {
-        if (!migration.hasOwnProperty('code')) {
-          $http.get('/api/projects/'+$scope.project.$id()+'/migration/'+migration.id)
-            .success(function(data) {
-              migration.code = data;
-            })
-            .error(function() {
-              i18nNotifications.pushForCurrentRoute('crud.projects.show.migration.error', 'danger');
-            });
-        }
+        }, function(message) {
+          i18nNotifications.pushForCurrentRoute('crud.projects.refresh.error', 'danger', {title: $scope.project.title, message: message});
+        });
       };
     }
   ]);
