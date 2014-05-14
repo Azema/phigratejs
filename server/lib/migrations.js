@@ -4,6 +4,7 @@ var mysql = require('mysql'),
     ini = require('ini-reader'),
     fs = require('fs'),
     path = require('path'),
+    Q = require('q'),
     _ = require('lodash');
 
 var MIGRATE_STATUS_NOT_IN_DB = 0;
@@ -11,13 +12,13 @@ var MIGRATE_STATUS_IN_DB = 1;
 var MIGRATE_STATUS_NO_FILE = 2;
 
 /**
- * Migrate class contains the properties of migration file
+ * Migration class contains the properties of migration file
  *
  * @param {String} migrationFile - The migration path
- * @return {Migrate}
+ * @return {Migration}
  * @api public
  */
-var Migrate = function(migrationFile) {
+var Migration = function(migrationFile) {
   /**
    * The file base name
    * @api public
@@ -45,38 +46,48 @@ var Migrate = function(migrationFile) {
     this.id = this.basename.replace(/^(\d+)_.*$/, '$1');
   }
 };
+module.exports.Migration = Migration;
 
 var MigrateCollection = function(dir, migrations) {
-  /**
-   * Migration directory
-   */
-  this.directory = '';
-  if (dir !== null) {
-    this.directory = dir;
+  if (typeof dir === 'object') {
+    this.directory = dir.directory;
+    this.collection = dir.collection;
+    this.length = dir.length;
+    this.status = dir.status;
+    this.updatedAt = dir.updatedAt;
+  } else {
+    /**
+     * Migration directory
+     */
+    this.directory = '';
+    if (dir !== null) {
+      this.directory = dir;
+    }
+
+    /**
+     * Collection length
+     */
+    this.length = 0;
+
+    /**
+     * Collection migrations
+     */
+    this.collection = {};
+    if (migrations !== null) {
+      this.setCollection(migrations);
+    }
+
+    /**
+     * MigrateCollection status (isUpToDate)
+     * 0: No up to date
+     * 1: Up to date
+     */
+    this.status = 0;
+
+    this.updatedAt = new Date(Date.now());
   }
-
-  /**
-   * Collection length
-   */
-  this.length = 0;
-
-  /**
-   * Collection migrations
-   */
-  this.collection = {};
-  if (migrations !== null) {
-    this.setCollection(migrations);
-  }
-
-  /**
-   * MigrateCollection status (isUpToDate)
-   * 0: No up to date
-   * 1: Up to date
-   */
-  this.status = 0;
-
-  this.updatedAt = new Date(Date.now());
 };
+module.exports.MigrateCollection = MigrateCollection;
 
 MigrateCollection.prototype.addMigrate = function(migration) {
   this.collection[migration.id] = migration;
@@ -150,13 +161,16 @@ MigrateCollection.prototype.setUpToDate = function(isUpToDate) {
  * @param {Function} done       - Callback (err, objIni)
  * @api public
  */
-var getApplicationIni = function(configPath, done) {
+var getApplicationIni = function(configPath) {
+  var deferred = Q.defer();
   // Check if application config file exists
   if (!fs.existsSync(configPath)) {
-    return done(new Error('Application config file not found! (' + configPath + ')'));
+    deferred.reject(new Error('Application config file not found! (' + configPath + ')'));
+  } else {
+    // Load and parse ini file
+    ini.load(configPath, deferred.makeNodeResolver());
   }
-  // Load and parse ini file
-  ini.load(configPath, done);
+  return deferred.promise;
 };
 module.exports.getApplicationIniObj = getApplicationIni;
 
@@ -209,7 +223,7 @@ var normalizeDbConfigFile = function(configPath, dbFilePath) {
 };
 
 /**
- * Retrieve all files in dir and return Migrate array
+ * Retrieve all files in dir and return Migration array
  *
  * @param {String}   dir - Directory path
  * @param {Function} cb  - Callback
@@ -228,7 +242,7 @@ var walkDir = function (dir, cb) {
       file = dir + '/' + file;
       fs.stat(file, function (err, stat) {
         if (stat && stat.isFile()) {
-          results.push(new Migrate(file));
+          results.push(new Migration(file));
         }
 
         if (!--pending) { cb(null, results); }
@@ -245,28 +259,30 @@ var walkDir = function (dir, cb) {
  * @return {Object{}}
  * @api public
  */
-var getProjectMigrationFiles = function(configDir, objAppIni, section, done) {
+var getProjectMigrationFiles = function(configDir, objAppIni, section) {
+  var deferred = Q.defer();
   // Check presence of section
   if (!objAppIni.hasOwnProperty(section)) {
-    return done(new Error('section (' + section + ') not found in application config !'));
+    // return done(new Error('section (' + section + ') not found in application config !'));
+    deferred.reject(new Error('section (' + section + ') not found in application config !'));
   }
   if (!objAppIni[section].hasOwnProperty('migration')) {
-    return done(new Error('migration.dir not found in config file!'));
+    // return done(new Error('migration.dir not found in config file!'));
+    deferred.reject(new Error('migration.dir not found in config file!'));
+  } else {
+    var migrationDir = normalizeMigrationDir(configDir, objAppIni[section].migration.dir);
+    walkDir(migrationDir, function(err, results) {
+      if (err) {
+        deferred.reject(err);
+        //return done(err);
+      } else {
+        var migrations = new MigrateCollection(migrationDir, results);
+        deferred.resolve(migrations);
+        // done(null, migrations);
+      }
+    });
   }
-  var migrationDir;
-  try {
-    migrationDir = normalizeMigrationDir(configDir, objAppIni[section].migration.dir);
-  } catch (e) {
-    return done(e);
-  }
-  walkDir(migrationDir, function(err, results) {
-    if (err) {
-      return done(err);
-    }
-    var migrations = new MigrateCollection(migrationDir, results);
-
-    done(null, migrations);
-  });
+  return deferred.promise;
 };
 module.exports.getProjectMigrationFiles = getProjectMigrationFiles;
 
@@ -277,7 +293,8 @@ module.exports.getProjectMigrationFiles = getProjectMigrationFiles;
  * @param {Function} done     - Callback (err, connection)
  * @api private
  */
-var getConnDb = function(driver, dbIniObj, done) {
+var getConnDb = function(driver, dbIniObj) {
+  var deferred = Q.defer();
   var options = {};
   var optionsAllowed = ['host', 'port', 'user', 'password', 'database', 'socketPath'];
   Object.keys(dbIniObj).forEach(function(key) {
@@ -288,7 +305,8 @@ var getConnDb = function(driver, dbIniObj, done) {
     }
   });
   if (Object.keys(options).length <= 0) {
-    return done(new Error('No data config found for connect to DB!'));
+    // return done(new Error('No data config found for connect to DB!'));
+    deferred.reject(new Error('No data config found for connect to DB!'));
   }
   if (null === driver) {
     driver = mysql;
@@ -297,12 +315,12 @@ var getConnDb = function(driver, dbIniObj, done) {
 
   connection.connect(function(err) {
     if (err) {
-      // console.error('error connecting: ' + err.stack);
-      return done(new Error('connecting to DB: ' + err.message));
+      deferred.reject(err);
+    } else {
+      deferred.resolve(connection);
     }
-
-    done(null, connection);
   });
+  return deferred.promise;
 };
 
 /**
@@ -313,23 +331,23 @@ var getConnDb = function(driver, dbIniObj, done) {
  * @param {Function} done       - Callback
  * @api public
  */
-var getMigrationsFromDb = function(driver, dbIniObj, section, done) {
+var getMigrationsFromDb = function(driver, dbIniObj, section) {
+  var deferred = Q.defer();
   if (!dbIniObj.hasOwnProperty(section)) {
-    return done(new Error('section (' + section + ') not found in database config!'));
+    // return done(new Error('section (' + section + ') not found in database config!'));
+    deferred.reject(new Error('section (' + section + ') not found in database config!'));
   }
 
-  getConnDb(driver, dbIniObj[section], function(err, conn) {
-    if (err) {
-      return done(err);
-    }
+  getConnDb(driver, dbIniObj[section]).then(function(conn) {
     var versions = [],
         sql = 'SELECT version FROM schema_migrations ORDER BY version DESC',
-        error = null, field,
+        /*error = null, */field,
         query = conn.query(sql);
 
     query
       .on('error', function(err) {
-        error = err;
+        deferred.reject(err);
+        // error = err;
       })
       .on('fields', function(fields) {
         if (fields !== null && fields.length > 0 && fields[0].name !== null) {
@@ -342,12 +360,14 @@ var getMigrationsFromDb = function(driver, dbIniObj, section, done) {
         }
       })
       .on('end', function() {
-        if (error) {
-          return done(error);
-        }
-        return done(null, versions);
+        // if (error) {
+        //   return done(error);
+        // }
+        // return done(null, versions);
+        deferred.resolve(versions);
       });
   });
+  return deferred.promise;
 };
 module.exports.getMigrationsFromDb = getMigrationsFromDb;
 
@@ -355,8 +375,8 @@ module.exports.getMigrationsFromDb = getMigrationsFromDb;
  * Merge migration objects with migration versions from DB
  *
  * @param {String{}}  versionsDb  - The migration versions From DB
- * @param {Migrate{}} migrateList - The Migrate object array
- * @return {Migrate{}}
+ * @param {Migration{}} migrateList - The Migration object array
+ * @return {Migration{}}
  * @api public
  */
 var mergeMigrations = function(versionsDb, migrateList) {
@@ -373,26 +393,14 @@ var mergeMigrations = function(versionsDb, migrateList) {
       isUpToDate = false;
     }
   }
-  // for (var i = 0; i < migrationIds.length; i++) {
-  //   if ((index = versionsDb.indexOf(migrateList.collection[i])) !== -1) {
-  //     migrateList.collection[migrationIds[i]].status = MIGRATE_STATUS_IN_DB; // 1
-  //     versRemaining.splice(versRemaining.indexOf(migrationIds[i]), 1);
-  //   } else {
-  //     migrateList.collection[migrationIds[i]].status = MIGRATE_STATUS_NOT_IN_DB; // 0
-  //     isUpToDate = false;
-  //   }
-  // }
   for (var r = 0; r < versRemaining.length; r++) {
-    migrateObj = new Migrate();
+    migrateObj = new Migration();
     migrateObj.id = versRemaining[r];
     migrateObj.status = MIGRATE_STATUS_NO_FILE; // 2
     migrateList.addMigrate(migrateObj);
     isUpToDate = false;
   }
   migrateList.setUpToDate(isUpToDate);
-  // migrateList.sort(function(a, b) {
-  //   return (a.id === b.id) ? 0 : (a.id < b.id) ? -1 : 1;
-  // });
   return migrateList;
 };
 module.exports.mergeMigrations = mergeMigrations;
@@ -401,70 +409,86 @@ module.exports.mergeMigrations = mergeMigrations;
  * Return database INI object if found
  *
  * @param {String}   dbConfigPath - Value of database config dir ini define in application.ini
- * @param {Function} done         - Callback (err, objIni)
+ * @return {promise}
  * @api public
  */
-var getDatabaseIni = function(dbConfigPath, done) {
+var getDatabaseIni = function(dbConfigPath) {
+  var deferred = Q.defer();
   // Check if database config file exists
   if (!fs.existsSync(dbConfigPath)) {
-    return done(new Error('Database config file not found! (' + dbConfigPath + ')'));
+    // return done(new Error('Database config file not found! (' + dbConfigPath + ')'));
+    deferred.reject(new Error('Database config file not found! (' + dbConfigPath + ')'));
   }
   // Load and parse ini file
-  ini.load(dbConfigPath, done);
+  ini.load(dbConfigPath, deferred.makeNodeResolver());
+  return deferred.promise;
 };
 module.exports.getDbIniObj = getDatabaseIni;
 
-module.exports.getMigrations = function(configPath, section, done) {
-    // Récupération du fichier application.ini
-  getApplicationIni(configPath, function(err, objAppIni) {
-    if (err) {
-      return done(err);
-    }
-    var configDir = path.dirname(configPath);
-    getProjectMigrationFiles(configDir, objAppIni, section, function(err, migrations) {
-      if (err) {
-        return done(err);
-      }
-
-      var dbConfigPath;
-      try {
-        dbConfigPath = normalizeDbConfigFile(configDir, objAppIni[section].database.config);
-      } catch (e) {
-        return done(e);
-      }
-      getDatabaseIni(dbConfigPath, function(err, objDbIni) {
-        if (err) {
-          return done(err);
-        }
-        getMigrationsFromDb(null, objDbIni, section, function(err, versions) {
-          if (err) {
-            return done(err);
-          }
-
-          mergeMigrations(versions, migrations);
-          done(null, migrations);
-        });
-      });
+module.exports.getMigrations = function(configPath, section) {
+  var migrationList, configDir, dbConfigPath, objAppIni;
+  // Récupération du fichier application.ini
+  return getApplicationIni(configPath)
+    .then(function(objIni) {
+      configDir = path.dirname(configPath);
+      objAppIni = objIni;
+      return getProjectMigrationFiles(configDir, objIni, section);
+    })
+    .then(function(migrations) {
+      migrationList = migrations;
+      dbConfigPath = normalizeDbConfigFile(configDir, objAppIni[section].database.config);
+      return dbConfigPath;
+    })
+    .then(function(dbConfigPath) {
+      return getDatabaseIni(dbConfigPath);
+    })
+    .then(function(objDbIni) {
+      return getMigrationsFromDb(null, objDbIni, section);
+    })
+    .then(function(versions) {
+      mergeMigrations(versions, migrationList);
+      return {migrationList: migrationList, dbConfigPath: dbConfigPath};
+      //done(null, migrationList, dbConfigPath);
     });
-  });
 };
 
-var getContentMigration = function(dir, migrationId, done) {
-  var re = new RegExp('^' + migrationId + '_');
-
-  fs.readdir(dir, function (err, list) {
-    if (err) { return done(err); }
-
-    var pending = list.length;
-
-    if (!pending) { return done(null, null); }
-
-    list.forEach(function (file) {
-      if (re.test(file)) {
-        return fs.readFile(dir + '/' + file, done);
-      }
-      if (!--pending) { done(null, null); }
-    });
-  });
+var getContentMigration = function(dir, migration, done) {
+  var file = dir + '/' + migration.basename;
+  if (fs.existsSync(file)) {
+    return fs.readFile(file, done);
+  }
+  done(null, null);
 };
 module.exports.getContentMigration = getContentMigration;
+
+module.exports.migrate = function(project, migrationId, done) {
+  var spawn = require('child_process').spawn,
+      args = [
+        '-c', project.config_path,
+        '-d', project.dbConfigPath,
+        'ENV=' + project.section,
+        'db:migrate', 'VERSION=' + migrationId
+      ],
+      phigrate = spawn('phigrate', args, {cwd: path.dirname(project.config_path)}),
+      stdout = '', stderr = '', error;
+
+  console.log('cmd: phigrate ' + args.join(' '));
+  phigrate.on('error', function (err) {
+    error = err;
+  });
+
+  phigrate.stdout.on('data', function (data) {
+    console.log('stdout: ' + data);
+    stdout += data;
+  });
+
+  phigrate.stderr.on('data', function (data) {
+    console.log('stderr: ' + data);
+    stderr += data;
+  });
+
+  phigrate.on('close', function (code) {
+    console.log('child process exited with code ' + code);
+    done(error, stdout, stderr, code);
+  });
+};
