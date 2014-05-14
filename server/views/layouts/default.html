@@ -3,7 +3,7 @@
 	{% include '../includes/head.html' %}
 	<body ng-controller="AppCtrl">
 		<div data-ng-include="'system/views/header.tpl.html'" data-role="navigation"></div>
-    <div data-ng-include="'system/views/notifications.tpl.html'" class="container-fluid" data-ng-show="notifications.getCurrent().length" style="margin-top:60px;"></div>
+    <div data-ng-include="'system/views/notifications.tpl.html'" class="container-fluid" data-ng-show="notifications.getCurrent().length"></div>
 		<section class="content">
       <div class="container">
         {% block content %}{% endblock %}
