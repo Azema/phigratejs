@@ -4,7 +4,7 @@ angular.module('phi.projects')
 
 // Apply this directive to an element at or below a form that will manage CRUD operations on a resource.
 // - The resource must expose the following instance methods: $saveOrUpdate(), $id() and $remove()
-.directive('phiPath', ['$compile', '$http', function($compile, $http) {
+.directive('phiPath', ['$http', function($http) {
   return {
     restrict: 'A',
     // We ask this directive to create a new child scope so that when we add helper methods to the scope

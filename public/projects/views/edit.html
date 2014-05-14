@@ -5,7 +5,7 @@
 		<div class="form-group" data-ng-class="getCssClasses('title')">
 			<label class="col-md-3 control-label">{{messages['projects.form.label.title']}}</label>
 			<div class="col-md-9">
-				<input type="text" class="form-control" id="title"
+				<input type="text" class="form-control" id="title" name="title"
 					data-ng-model="project.title" placeholder="{{messages['projects.form.placeholder.title']}}" data-required/>
 				<span data-ng-if="showError('title', 'required')" class="help-block animated fadeIn">{{messages['field-required']}}</span>
 			</div>
@@ -26,7 +26,7 @@
 		<div class="form-group" data-ng-class="getCssClasses('section')">
 			<label class="col-md-3 control-label">{{messages['projects.form.label.section']}}</label>
 			<div class="col-md-9">
-				<input type="text" class="form-control" id="section"
+				<input type="text" class="form-control" id="section" name="section"
 					data-ng-model="project.section" placeholder="{{messages['projects.form.placeholder.section']}}" data-required/>
 				<span data-ng-if="showError('section', 'required')" class="help-block animated fadeIn">{{messages['field-required']}}</span>
 			</div>
