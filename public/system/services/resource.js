@@ -36,15 +36,23 @@ angular.module('phi.system.resource', [])
           } else if (response.status === 204) {
             result = null;
           } else {
+            var message;
+            if (response.data.message) {
+              message = response.data.message;
+            }
             // notification
-            ecb(undefined, response.status, response.headers, response.config);
+            ecb(message, response.status, response.headers, response.config);
             return undefined;
           }
           scb(result, response.status, response.headers, response.config);
           return result;
         }, function (response) {
           if (response) {
-            ecb(undefined, response.status, response.headers, response.config);
+            var message;
+            if (response.data.message) {
+              message = response.data.message;
+            }
+            ecb(message, response.status, response.headers, response.config);
           } else {
             ecb(undefined);
           }
