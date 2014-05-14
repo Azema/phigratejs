@@ -7,7 +7,10 @@
     <div class="left pull-left">
       <ul class="navbar-nav nav">
         <li data-ng-repeat="item in menus" data-ng-class="{active: isActive(item.link)}">
-          <a data-ng-if="item.show()" data-ng-href='{{item.link}}'>{{item.title}}</a>
+          <a data-ng-if="item.show()" data-ng-href='{{item.link}}'>{{item.title}}
+            <i ng-if="$last" class="glyphicon glyphicon-refresh pointer"
+              data-ng-click="refreshProjects()" title="Refresh all projects"></i>
+          </a>
         </li>
       </ul>
     </div>
