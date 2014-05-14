@@ -1,4 +1,3 @@
-<div ng-class="['alert', 'alert-'+notification.type]" ng-repeat="notification in notifications.getCurrent()">
-    <button class="close" ng-click="removeNotification(notification)">x</button>
-    <span data-ng-bind-html="notification.message"></span>
+<div data-ng-repeat="notification in notifications.getCurrent()">
+  <div data-phi-notification="notification"></div>
 </div>

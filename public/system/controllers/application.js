@@ -23,10 +23,6 @@ angular.module('phi.system')
       $rootScope.messages = messages;
       $rootScope.width = angular.element(document).width();
 
-      $scope.removeNotification = function (notification) {
-        i18nNotifications.remove(notification);
-      };
-
       $rootScope.$on('$routeChangeError', function (event, current, previous, rejection) {
         i18nNotifications.pushForCurrentRoute('errors.route.changeError', 'error', {}, {rejection: rejection});
       });
